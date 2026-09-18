@@ -4,10 +4,14 @@
 
 A native desktop app for production image batches — product shots, print layouts, and profile frames — where every output must match a target size and a chosen composition.
 
+[![Website](https://img.shields.io/badge/website-aneebji.github.io-0A84FF?logo=github)](https://aneebji.github.io/img-rescaler/)
 [![macOS](https://img.shields.io/badge/macOS-supported-111111?logo=apple&logoColor=white)](https://github.com/aneebji/img-rescaler)
 [![Electron](https://img.shields.io/badge/Electron-36-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Sharp](https://img.shields.io/badge/Sharp-0.34-99CC00?logo=imagemagick&logoColor=white)](https://sharp.pixelplumbing.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0A84FF.svg)](./LICENSE)
+
+**Web:** [aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)  
+**Clone:** `git clone https://github.com/aneebji/img-rescaler.git`
 
 <p align="center">
   <img src="docs/assets/app.png" alt="Image Rescaler interface with drop zone, resolution chips, and crop preview" width="920" />
