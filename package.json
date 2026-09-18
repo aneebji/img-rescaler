@@ -2,7 +2,7 @@
   "name": "image-rescaler",
   "productName": "Image Rescaler",
   "version": "1.0.0",
-  "description": "Rescale images to multiple sizes without stretching or quality loss",
+  "description": "Desktop app for exact-size PNG exports with a live, per-resolution crop editor",
   "main": "electron/main.js",
   "author": "Image Rescaler",
   "license": "MIT",
