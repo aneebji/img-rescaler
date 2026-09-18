@@ -344,9 +344,13 @@ button {
   align-items: start;
 }
 
+.is-web .output-actions {
+  display: none;
+}
+
 .crop-stage {
   position: relative;
-  min-height: 420px;
+  min-height: 560px;
   border-radius: 14px;
   background: var(--crop-bg);
   overflow: hidden;
@@ -365,7 +369,7 @@ button {
 .crop-viewport {
   position: relative;
   width: 100%;
-  height: 420px;
+  height: 560px;
   overflow: hidden;
   touch-action: none;
   cursor: grab;

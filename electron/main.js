@@ -45,6 +45,39 @@ function formatRunStamp(date = new Date()) {
   ].join("_");
 }
 
+async function uniqueDestName(dir, fileName) {
+  const ext = path.extname(fileName);
+  const stem = path.basename(fileName, ext);
+  let dest = path.join(dir, fileName);
+  let suffix = 2;
+
+  while (true) {
+    try {
+      await fs.access(dest);
+      dest = path.join(dir, `${stem}-${suffix}${ext}`);
+      suffix += 1;
+    } catch {
+      return dest;
+    }
+  }
+}
+
+async function copyOriginals(dest, images) {
+  const originalsDir = path.join(dest, "originals");
+  await fs.mkdir(originalsDir, { recursive: true });
+  const seen = new Set();
+
+  for (const image of images) {
+    const source = image.path;
+    if (!source || seen.has(source)) {
+      continue;
+    }
+    seen.add(source);
+    const target = await uniqueDestName(originalsDir, path.basename(source));
+    await fs.copyFile(source, target);
+  }
+}
+
 async function createRunDir(parent) {
   await fs.mkdir(parent, { recursive: true });
 
@@ -223,6 +256,7 @@ ipcMain.handle(
   async (event, { images, resolutions, outputDir, crops }) => {
     const parent = outputDir || getDefaultOutputDir();
     const dest = await createRunDir(parent);
+    await copyOriginals(dest, images);
 
     const jobs = [];
     for (const image of images) {
@@ -238,7 +272,7 @@ ipcMain.handle(
       const presetWidth = Number(resolution.width);
       const presetHeight = Number(resolution.height);
       const cropKey = `${presetWidth}x${presetHeight}`;
-      const crop = crops?.[image.path]?.[cropKey];
+      const crop = crops?.[image.id]?.[cropKey] || crops?.[image.path]?.[cropKey];
 
       event.sender.send("resize-progress", {
         current: index + 1,
@@ -297,6 +331,7 @@ async function readImageInfos(filePaths) {
 
       const metadata = await sharp(filePath).rotate().metadata();
       infos.push({
+        id: filePath,
         path: filePath,
         name: path.basename(filePath),
         width: metadata.width || 0,
@@ -304,6 +339,7 @@ async function readImageInfos(filePaths) {
       });
     } catch (error) {
       infos.push({
+        id: filePath,
         path: filePath,
         name: path.basename(filePath),
         width: 0,

@@ -2,17 +2,19 @@
   "name": "image-rescaler",
   "productName": "Image Rescaler",
   "version": "1.0.0",
-  "description": "Desktop app for exact-size PNG exports with a live, per-resolution crop editor",
+  "description": "Web and desktop app for exact-size PNG exports with a live, per-resolution crop editor",
   "main": "electron/main.js",
   "author": "Image Rescaler",
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "vite build",
+    "build:pages": "vite build && rm -rf docs && cp -R dist-renderer docs",
     "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "jszip": "^3.10.2",
     "sharp": "^0.34.4"
   },
   "devDependencies": {

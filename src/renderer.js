@@ -1,3 +1,7 @@
+import { installWebApi } from "./web-api.js";
+
+installWebApi();
+
 const imageListEl = document.getElementById("image-list");
 const imageEmptyEl = document.getElementById("image-empty");
 const dropZoneEl = document.getElementById("drop-zone");
@@ -8,6 +12,8 @@ const resHeightEl = document.getElementById("res-height");
 const resChipsEl = document.getElementById("res-chips");
 const resEmptyEl = document.getElementById("res-empty");
 const outputPathEl = document.getElementById("output-path");
+const outputHintEl = document.getElementById("output-hint");
+const outputActionsEl = document.getElementById("output-actions");
 const chooseOutputBtn = document.getElementById("choose-output");
 const revealOutputBtn = document.getElementById("reveal-output");
 const rescaleBtn = document.getElementById("rescale");
@@ -27,6 +33,7 @@ const outputPreviewImageEl = document.getElementById("output-preview-image");
 const outputPreviewLabelEl = document.getElementById("output-preview-label");
 
 const previewCache = new Map();
+const isWeb = Boolean(window.api?.isWeb);
 
 const DEFAULT_RESOLUTIONS = [
   { width: 680, height: 1000 },
@@ -41,7 +48,7 @@ const state = {
   outputDir: "",
   lastRunDir: "",
   busy: false,
-  selectedImagePath: "",
+  selectedImageId: "",
   selectedWidth: DEFAULT_RESOLUTIONS[0].width,
   selectedHeight: DEFAULT_RESOLUTIONS[0].height,
   crops: {},
@@ -53,8 +60,13 @@ const drag = {
   y: 0,
 };
 
+const cropLayout = {
+  imgW: 1,
+  imgH: 1,
+};
+
 function uniqueKey(image) {
-  return image.path;
+  return image.id || image.path;
 }
 
 function cropKey(width, height) {
@@ -66,7 +78,7 @@ function usableImages() {
 }
 
 function selectedImage() {
-  return state.images.find((image) => image.path === state.selectedImagePath) || null;
+  return state.images.find((image) => uniqueKey(image) === state.selectedImageId) || null;
 }
 
 function selectedResolution() {
@@ -120,7 +132,7 @@ function clampCrop(crop, srcW, srcH, aspect) {
 }
 
 function getCrop(image, resolution) {
-  const stored = state.crops[image.path]?.[cropKey(resolution.width, resolution.height)];
+  const stored = state.crops[uniqueKey(image)]?.[cropKey(resolution.width, resolution.height)];
   if (stored) {
     return clampCrop(
       stored,
@@ -135,10 +147,11 @@ function getCrop(image, resolution) {
 
 function setCrop(image, resolution, crop) {
   const key = cropKey(resolution.width, resolution.height);
-  if (!state.crops[image.path]) {
-    state.crops[image.path] = {};
+  const imageKey = uniqueKey(image);
+  if (!state.crops[imageKey]) {
+    state.crops[imageKey] = {};
   }
-  state.crops[image.path][key] = clampCrop(
+  state.crops[imageKey][key] = clampCrop(
     crop,
     image.width,
     image.height,
@@ -148,8 +161,8 @@ function setCrop(image, resolution, crop) {
 
 function ensureSelection() {
   const images = usableImages();
-  if (!images.some((image) => image.path === state.selectedImagePath)) {
-    state.selectedImagePath = images[0]?.path || "";
+  if (!images.some((image) => uniqueKey(image) === state.selectedImageId)) {
+    state.selectedImageId = images[0] ? uniqueKey(images[0]) : "";
   }
 
   const stillSelected = state.resolutions.some(
@@ -162,7 +175,7 @@ function ensureSelection() {
 }
 
 function resolvedPreview(image) {
-  const cached = image ? previewCache.get(image.path) : null;
+  const cached = image ? previewCache.get(uniqueKey(image)) : null;
   if (!cached || typeof cached.then === "function") {
     return null;
   }
@@ -174,7 +187,8 @@ async function loadPreview(image) {
     return null;
   }
 
-  const cached = previewCache.get(image.path);
+  const imageKey = uniqueKey(image);
+  const cached = previewCache.get(imageKey);
   if (cached && typeof cached.then !== "function") {
     return cached;
   }
@@ -182,17 +196,17 @@ async function loadPreview(image) {
     return cached;
   }
 
-  const pending = window.api.getImagePreview(image.path).then((preview) => {
+  const pending = window.api.getImagePreview(imageKey).then((preview) => {
     image.previewUrl = preview.dataUrl;
-    previewCache.set(image.path, preview);
+    previewCache.set(imageKey, preview);
     return preview;
   });
-  previewCache.set(image.path, pending);
+  previewCache.set(imageKey, pending);
 
   try {
     return await pending;
   } catch (error) {
-    previewCache.delete(image.path);
+    previewCache.delete(imageKey);
     throw error;
   }
 }
@@ -201,10 +215,14 @@ function addImages(nextImages) {
   const seen = new Set(state.images.map(uniqueKey));
 
   for (const image of nextImages) {
-    if (!image?.path || seen.has(image.path)) {
+    const key = image ? uniqueKey(image) : "";
+    if (!key || seen.has(key)) {
       continue;
     }
-    seen.add(image.path);
+    if (!image.id) {
+      image.id = image.path;
+    }
+    seen.add(key);
     state.images.push(image);
   }
 
@@ -221,10 +239,11 @@ function addImages(nextImages) {
   }
 }
 
-function removeImage(filePath) {
-  state.images = state.images.filter((image) => image.path !== filePath);
-  delete state.crops[filePath];
-  previewCache.delete(filePath);
+function removeImage(imageKey) {
+  state.images = state.images.filter((image) => uniqueKey(image) !== imageKey);
+  delete state.crops[imageKey];
+  previewCache.delete(imageKey);
+  window.api?.releaseImage?.(imageKey);
   ensureSelection();
   renderImages();
   updateActions();
@@ -256,8 +275,8 @@ function removeResolution(width, height) {
   state.resolutions = state.resolutions.filter(
     (item) => !(item.width === width && item.height === height)
   );
-  for (const imagePath of Object.keys(state.crops)) {
-    delete state.crops[imagePath][cropKey(width, height)];
+  for (const imageKey of Object.keys(state.crops)) {
+    delete state.crops[imageKey][cropKey(width, height)];
   }
   ensureSelection();
   renderResolutions();
@@ -265,12 +284,12 @@ function removeResolution(width, height) {
   refreshPreview();
 }
 
-function selectImage(filePath) {
-  const image = state.images.find((item) => item.path === filePath);
+function selectImage(imageKey) {
+  const image = state.images.find((item) => uniqueKey(item) === imageKey);
   if (!image || image.error) {
     return;
   }
-  state.selectedImagePath = filePath;
+  state.selectedImageId = imageKey;
   renderImages();
   refreshPreview();
 }
@@ -295,8 +314,9 @@ function renderImages() {
     const name = document.createElement("strong");
     const size = document.createElement("span");
     const remove = document.createElement("button");
+    const imageKey = uniqueKey(image);
 
-    if (image.path === state.selectedImagePath) {
+    if (imageKey === state.selectedImageId) {
       item.classList.add("selected");
     }
 
@@ -309,7 +329,7 @@ function renderImages() {
     remove.textContent = "Remove";
     remove.addEventListener("click", (event) => {
       event.stopPropagation();
-      removeImage(image.path);
+      removeImage(imageKey);
     });
 
     if (image.previewUrl) {
@@ -324,7 +344,7 @@ function renderImages() {
     main.className = "file-main";
     main.append(meta);
     item.append(main, remove);
-    item.addEventListener("click", () => selectImage(image.path));
+    item.addEventListener("click", () => selectImage(imageKey));
     imageListEl.append(item);
   }
 }
@@ -370,6 +390,16 @@ function renderResolutions() {
   }
 }
 
+function resultLabel(result) {
+  if (result.outputPath) {
+    return result.outputPath.split("/").pop();
+  }
+  if (result.source) {
+    return String(result.source).split("/").pop();
+  }
+  return "Failed";
+}
+
 function renderResults(results) {
   resultsEl.innerHTML = "";
   const hasResults = results.length > 0;
@@ -383,9 +413,7 @@ function renderResults(results) {
 
     if (result.error) {
       item.classList.add("fail");
-      name.textContent = result.source
-        ? result.source.split("/").pop()
-        : "Failed";
+      name.textContent = resultLabel(result);
       size.textContent = result.error;
       meta.append(name, size);
       item.append(meta);
@@ -393,17 +421,21 @@ function renderResults(results) {
       continue;
     }
 
-    name.textContent = result.outputPath.split("/").pop();
+    name.textContent = resultLabel(result);
     size.innerHTML = `<span class="ok-size">${result.width} × ${result.height}</span> · PNG crop`;
-
-    const reveal = document.createElement("button");
-    reveal.type = "button";
-    reveal.className = "ghost";
-    reveal.textContent = "Reveal in Finder";
-    reveal.addEventListener("click", () => window.api.revealItem(result.outputPath));
-
     meta.append(name, size);
-    item.append(meta, reveal);
+
+    if (!isWeb && result.outputPath && window.api?.revealItem) {
+      const reveal = document.createElement("button");
+      reveal.type = "button";
+      reveal.className = "ghost";
+      reveal.textContent = "Reveal in Finder";
+      reveal.addEventListener("click", () => window.api.revealItem(result.outputPath));
+      item.append(meta, reveal);
+    } else {
+      item.append(meta);
+    }
+
     resultsEl.append(item);
   }
 }
@@ -447,47 +479,38 @@ function layoutCrop() {
   const pad = 28;
   const maxW = Math.max(80, stage.width - pad * 2);
   const maxH = Math.max(80, stage.height - pad * 2);
-  const aspect = resolution.width / resolution.height;
-  let frameW;
-  let frameH;
-
-  if (maxW / maxH > aspect) {
-    frameH = maxH;
-    frameW = frameH * aspect;
-  } else {
-    frameW = maxW;
-    frameH = frameW / aspect;
-  }
-
-  const frameX = (stage.width - frameW) / 2;
-  const frameY = (stage.height - frameH) / 2;
-  cropFrameEl.style.left = `${frameX}px`;
-  cropFrameEl.style.top = `${frameY}px`;
-  cropFrameEl.style.width = `${frameW}px`;
-  cropFrameEl.style.height = `${frameH}px`;
-
-  const crop = getCrop(image, resolution);
-  const previewW = preview.previewWidth;
-  const previewH = preview.previewHeight;
-  const scale = frameW / (crop.width * (previewW / image.width));
-  const imgW = previewW * scale;
-  const imgH = previewH * scale;
-  const imgX = frameX - crop.left * (previewW / image.width) * scale;
-  const imgY = frameY - crop.top * (previewH / image.height) * scale;
+  const contain = Math.min(maxW / preview.previewWidth, maxH / preview.previewHeight);
+  const imgW = preview.previewWidth * contain;
+  const imgH = preview.previewHeight * contain;
+  const imgX = (stage.width - imgW) / 2;
+  const imgY = (stage.height - imgH) / 2;
+  cropLayout.imgW = imgW;
+  cropLayout.imgH = imgH;
 
   cropImageEl.style.width = `${imgW}px`;
   cropImageEl.style.height = `${imgH}px`;
   cropImageEl.style.left = `${imgX}px`;
   cropImageEl.style.top = `${imgY}px`;
 
+  const crop = getCrop(image, resolution);
+  const scaleX = imgW / image.width;
+  const scaleY = imgH / image.height;
+  cropFrameEl.style.left = `${imgX + crop.left * scaleX}px`;
+  cropFrameEl.style.top = `${imgY + crop.top * scaleY}px`;
+  cropFrameEl.style.width = `${crop.width * scaleX}px`;
+  cropFrameEl.style.height = `${crop.height * scaleY}px`;
+
+  const aspect = resolution.width / resolution.height;
   const previewFrameW = outputPreviewFrameEl.clientWidth || 140;
   const previewFrameH = previewFrameW / aspect;
+  const previewScaleX = preview.previewWidth / image.width;
+  const previewScaleY = preview.previewHeight / image.height;
   outputPreviewFrameEl.style.aspectRatio = `${resolution.width} / ${resolution.height}`;
   outputPreviewImageEl.src = preview.dataUrl;
-  outputPreviewImageEl.style.width = `${previewW * (previewFrameW / (crop.width * (previewW / image.width)))}px`;
-  outputPreviewImageEl.style.height = `${previewH * (previewFrameH / (crop.height * (previewH / image.height)))}px`;
-  outputPreviewImageEl.style.left = `${-crop.left * (previewW / image.width) * (previewFrameW / (crop.width * (previewW / image.width)))}px`;
-  outputPreviewImageEl.style.top = `${-crop.top * (previewH / image.height) * (previewFrameH / (crop.height * (previewH / image.height)))}px`;
+  outputPreviewImageEl.style.width = `${preview.previewWidth * (previewFrameW / (crop.width * previewScaleX))}px`;
+  outputPreviewImageEl.style.height = `${preview.previewHeight * (previewFrameH / (crop.height * previewScaleY))}px`;
+  outputPreviewImageEl.style.left = `${-crop.left * previewScaleX * (previewFrameW / (crop.width * previewScaleX))}px`;
+  outputPreviewImageEl.style.top = `${-crop.top * previewScaleY * (previewFrameH / (crop.height * previewScaleY))}px`;
   outputPreviewLabelEl.textContent = `${resolution.width} × ${resolution.height} PNG`;
 }
 
@@ -518,31 +541,16 @@ async function refreshPreview() {
   }
 }
 
-function currentScale() {
-  const image = selectedImage();
-  const resolution = selectedResolution();
-  const preview = resolvedPreview(image);
-  if (!image || !resolution || !preview) {
-    return 1;
-  }
-
-  const frameW = cropFrameEl.getBoundingClientRect().width;
-  const crop = getCrop(image, resolution);
-  return frameW / (crop.width * (preview.previewWidth / image.width));
-}
-
 function panCrop(dx, dy) {
   const image = selectedImage();
   const resolution = selectedResolution();
-  const preview = resolvedPreview(image);
-  if (!image || !resolution || !preview) {
+  if (!image || !resolution) {
     return;
   }
 
   const crop = getCrop(image, resolution);
-  const scale = currentScale();
-  const sx = -dx / scale * (image.width / preview.previewWidth);
-  const sy = -dy / scale * (image.height / preview.previewHeight);
+  const sx = dx * (image.width / cropLayout.imgW);
+  const sy = dy * (image.height / cropLayout.imgH);
   setCrop(image, resolution, {
     ...crop,
     left: crop.left + sx,
@@ -574,10 +582,17 @@ async function addImagesFromPaths(paths) {
 }
 
 async function handleDroppedFiles(fileList) {
-  const paths = [...fileList]
-    .map((file) => window.api.getPathForFile(file))
-    .filter(Boolean);
+  const files = [...fileList];
+  if (!files.length) {
+    return;
+  }
 
+  if (window.api.inspectFiles) {
+    addImages(await window.api.inspectFiles(files));
+    return;
+  }
+
+  const paths = files.map((file) => window.api.getPathForFile(file)).filter(Boolean);
   if (!paths.length) {
     return;
   }
@@ -624,6 +639,9 @@ resForm.addEventListener("submit", (event) => {
 });
 
 chooseOutputBtn.addEventListener("click", async () => {
+  if (isWeb) {
+    return;
+  }
   const folder = await window.api.pickOutputFolder();
   if (folder) {
     state.outputDir = folder;
@@ -632,6 +650,9 @@ chooseOutputBtn.addEventListener("click", async () => {
 });
 
 revealOutputBtn.addEventListener("click", () => {
+  if (isWeb) {
+    return;
+  }
   window.api.revealFolder(state.lastRunDir || state.outputDir);
 });
 
@@ -742,16 +763,21 @@ const cropObserver = new ResizeObserver(() => {
 cropObserver.observe(cropViewportEl);
 
 async function init() {
-  if (!window.api) {
-    outputPathEl.textContent = "Open this window from the desktop app.";
-    renderImages();
-    renderResolutions();
-    updateActions();
-    return;
+  document.body.classList.toggle("is-web", isWeb);
+
+  if (isWeb) {
+    outputPathEl.textContent = "Rescale downloads a ZIP with originals and PNGs.";
+    if (outputHintEl) {
+      outputHintEl.textContent = "Each run is one dated ZIP: originals/ plus every size.";
+    }
+    if (outputActionsEl) {
+      outputActionsEl.hidden = true;
+    }
+  } else if (window.api?.getDefaultOutput) {
+    state.outputDir = await window.api.getDefaultOutput();
+    outputPathEl.textContent = state.outputDir;
   }
 
-  state.outputDir = await window.api.getDefaultOutput();
-  outputPathEl.textContent = state.outputDir;
   renderImages();
   renderResolutions();
   updateActions();
@@ -767,7 +793,7 @@ if (import.meta.env.DEV) {
       images: state.images,
       resolutions: state.resolutions,
       crops: state.crops,
-      selectedImagePath: state.selectedImagePath,
+      selectedImageId: state.selectedImageId,
       selectedWidth: state.selectedWidth,
       selectedHeight: state.selectedHeight,
       lastRunDir: state.lastRunDir,

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; script-src 'self'"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: blob:; script-src 'self'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Image Rescaler</title>
@@ -78,9 +78,9 @@
               <div>
                 <h3>Output folder</h3>
                 <p id="output-path" class="path"></p>
-                <p class="hint">Each rescale creates a dated subfolder.</p>
+                <p id="output-hint" class="hint">Each rescale creates a dated subfolder.</p>
               </div>
-              <div class="output-actions">
+              <div id="output-actions" class="output-actions">
                 <button type="button" id="choose-output" class="ghost">
                   Choose
                 </button>
