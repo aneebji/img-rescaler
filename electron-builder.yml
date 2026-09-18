@@ -1,0 +1,19 @@
+appId: com.imagerescaler.app
+productName: Image Rescaler
+directories:
+  output: release
+files:
+  - electron/**/*
+  - dist-renderer/**/*
+  - package.json
+asar: true
+asarUnpack:
+  - "**/node_modules/sharp/**/*"
+  - "**/node_modules/@img/**/*"
+npmRebuild: true
+mac:
+  category: public.app-category.photography
+  target:
+    - dmg
+    - zip
+  artifactName: "${productName}-${version}-${arch}.${ext}"

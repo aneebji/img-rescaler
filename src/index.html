@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; script-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Rescaler</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div>
+          <h1>Image Rescaler</h1>
+          <p>
+            Output is PNG at the exact size you enter. Drag the photo to choose
+            the frame for each resolution, like a profile-photo crop.
+          </p>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Images</h2>
+            <button type="button" id="add-images" class="ghost">Add images</button>
+          </div>
+
+          <div id="drop-zone" class="drop-zone" tabindex="0">
+            <strong>Drop images here</strong>
+            <span>JPG, PNG, WebP, GIF, TIFF, AVIF, HEIC, BMP, SVG, and more</span>
+          </div>
+
+          <ul id="image-list" class="file-list" hidden></ul>
+          <p id="image-empty" class="empty">No images yet.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Resolutions</h2>
+          </div>
+
+          <form id="res-form" class="res-form">
+            <label>
+              Width
+              <input
+                id="res-width"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="1920"
+                required
+              />
+            </label>
+            <span class="times" aria-hidden="true">×</span>
+            <label>
+              Height
+              <input
+                id="res-height"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="1080"
+                required
+              />
+            </label>
+            <button type="submit" class="ghost">Add</button>
+          </form>
+
+          <div id="res-chips" class="chips"></div>
+          <p id="res-empty" class="empty">Default sizes load on start. Add more or remove any.</p>
+
+          <div class="options">
+            <div class="output-row">
+              <div>
+                <h3>Output folder</h3>
+                <p id="output-path" class="path"></p>
+                <p class="hint">Each rescale creates a dated subfolder.</p>
+              </div>
+              <div class="output-actions">
+                <button type="button" id="choose-output" class="ghost">
+                  Choose
+                </button>
+                <button type="button" id="reveal-output" class="ghost">
+                  Reveal in Finder
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" id="rescale" class="primary" disabled>
+            Rescale
+          </button>
+        </section>
+      </main>
+
+      <section class="panel preview-panel">
+        <div class="panel-head">
+          <h2>Preview</h2>
+          <button type="button" id="reset-crop" class="ghost" disabled>
+            Reset crop
+          </button>
+        </div>
+
+        <div id="preview-res-tabs" class="chips preview-tabs"></div>
+
+        <div class="preview-layout">
+          <div id="crop-stage" class="crop-stage">
+            <p id="preview-empty" class="empty preview-empty">
+              Add an image and a size to preview the crop.
+            </p>
+            <div id="crop-viewport" class="crop-viewport" hidden>
+              <img id="crop-image" alt="" draggable="false" />
+              <div id="crop-frame" class="crop-frame">
+                <span class="crop-grid" aria-hidden="true"></span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="output-preview-card">
+            <h3>This size</h3>
+            <div id="output-preview-frame" class="output-preview-frame">
+              <img id="output-preview-image" alt="" draggable="false" />
+            </div>
+            <p id="output-preview-label" class="hint">No crop yet</p>
+          </aside>
+        </div>
+
+        <p id="preview-hint" class="hint">
+          Drag to reposition. Scroll to zoom. Each size keeps its own crop.
+        </p>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="panel-head">
+          <h2>Results</h2>
+          <span id="progress-label" class="progress-label"></span>
+        </div>
+        <div id="progress" class="progress" hidden>
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <ul id="results" class="results"></ul>
+        <p id="results-empty" class="empty">Rescaled files will appear here.</p>
+      </section>
+    </div>
+    <script type="module" src="./renderer.js"></script>
+  </body>
+</html>

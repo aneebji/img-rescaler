@@ -1,0 +1,15 @@
+node_modules/
+dist-renderer/
+release/
+output/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+.vite/
+*.local
+.idea/
+.vscode/
+*.tsbuildinfo
