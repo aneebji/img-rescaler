@@ -13,10 +13,6 @@ A native desktop app for production image batches — product shots, print layou
 **Web:** [aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)  
 **Clone:** `git clone https://github.com/aneebji/img-rescaler.git`
 
-<p align="center">
-  <img src="docs/assets/app.png" alt="Image Rescaler interface with drop zone, resolution chips, and crop preview" width="920" />
-</p>
-
 ---
 
 ## Why this exists
