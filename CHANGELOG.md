@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0 — 2026-09-19
+
+### Photoshop files in the crop workspace
+
+- Added Photoshop PSD and PSB composite decode so CMYK and RGB files can be cropped and exported in the browser and desktop apps.
+- Documented PSD/PSB as a supported source format alongside PNG, JPEG, and WebP exports.
+
 ## 2.0.0 — 2026-09-19
 
 ### A new image workspace
@@ -20,7 +27,6 @@
 
 - Prevented files with matching basenames from overwriting each other.
 - Fixed EXIF-rotated desktop image dimensions and transparent browser previews.
-- Added Photoshop PSD and PSB composite decode so CMYK files can be cropped and exported.
 - Added dimension limits, safer filenames, crop bounds, import errors, and preview retry handling.
 - Locked export settings during processing and prevented older asynchronous previews from replacing the current selection.
 - Added named dialogs, keyboard focus retention, live status announcements, and improved contrast.

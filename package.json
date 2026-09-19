@@ -1,8 +1,8 @@
 {
   "name": "image-rescaler",
   "productName": "Image Rescaler",
-  "version": "2.0.0",
-  "description": "A private image workspace for precise crops, batch resizing, and PNG, JPEG, and WebP exports.",
+  "version": "3.0.0",
+  "description": "A private image workspace for precise crops, batch resizing, Photoshop PSD imports, and PNG, JPEG, and WebP exports.",
   "main": "electron/main.js",
   "author": "Aneeb",
   "license": "MIT",

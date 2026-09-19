@@ -10,7 +10,7 @@ Set your sizes, refine each crop, and export the entire batch in one go.
 [![Open workspace](https://img.shields.io/badge/Open_workspace-Live_app-3e583b?style=flat-square)](https://aneebji.github.io/img-rescaler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-222222?style=flat-square)](./LICENSE)
 [![Processing](https://img.shields.io/badge/Image_processing-On_your_device-167b52?style=flat-square)](#privacy)
-[![Version](https://img.shields.io/badge/Version-2.0.0-3e583b?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-3.0.0-3e583b?style=flat-square)](./CHANGELOG.md)
 
 [**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
 
@@ -38,7 +38,7 @@ Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, with
 | **Batch processing**       | Add multiple images and generate every image × selected size combination.                                                     |
 | **Visual crop control**    | Frame each composition with drag, zoom, and a live output preview. Each image and size keeps its own crop during the session. |
 | **Useful size presets**    | Start with Social, Commerce, Web, or the original sizes, or enter custom pixel dimensions.                                    |
-| **PNG, JPEG, and WebP**    | Choose an export format, with adjustable quality for JPEG and WebP.                                                           |
+| **PNG, JPEG, WebP, and PSD** | Import photos and Photoshop **PSD/PSB** files, then export PNG, JPEG, or WebP with adjustable quality.                      |
 | **Organized delivery**     | Download a ZIP in the browser or save to a local run folder on desktop. Include source originals when needed.                 |
 | **A considered interface** | Responsive layout, light and dark themes, and keyboard and touch crop controls.                                               |
 | **Try before importing**   | Explore the browser workspace with the built-in sample image.                                                                 |
@@ -52,13 +52,15 @@ Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, with
 4. **Set your export options.** Choose PNG, JPEG, or WebP, adjust quality where applicable, and decide whether to include originals.
 5. **Export the batch.** Download the ZIP in the browser or open the destination folder on desktop. Review the result summary for any failed images.
 
-### Choosing an export format
+### Supported formats
 
-| Format   | A good fit for                                    | Notes                                                                                 |
-| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **PNG**  | Graphics, transparent assets, and lossless output | Supports transparency; quality control does not apply.                                |
-| **JPEG** | Photos and widely compatible delivery             | Uses a white background for transparent pixels; quality affects detail and file size. |
-| **WebP** | Web images with transparency or lossy compression | Quality affects detail and file size. Browser encoder availability may vary.          |
+| Format        | Role    | Notes                                                                                          |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| **PSD / PSB** | Import  | Reads the merged Photoshop composite, including CMYK and RGB 8-bit files. Layers are not kept. |
+| **PNG**       | Export  | Graphics, transparent assets, and lossless output. Quality control does not apply.             |
+| **JPEG**      | Export  | Photos and widely compatible delivery. Transparent pixels flatten onto white.                  |
+| **WebP**      | Export  | Web images with transparency or lossy compression. Browser encoder availability may vary.      |
+| **JPG, AVIF, SVG & more** | Import | Other rasters and vectors depend on the browser or Sharp decoder.                    |
 
 The app performs conventional image resizing. Enlarging a small source does not recover detail that was absent from the original.
 
@@ -94,13 +96,14 @@ Image files and crop edits are session data, not a saved project. Export your wo
 | **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)                    | Run locally from source                              |
 | **Processing**     | Browser image decoding and Canvas                                               | Sharp in Electron's main process                     |
 | **Delivery**       | ZIP download                                                                    | Dated local output folder                            |
-| **Source formats** | Formats supported by your browser; PNG, JPEG, and WebP are good starting points | Formats supported by the installed Sharp build       |
+| **Source formats** | Browser-decoded images plus Photoshop **PSD/PSB** (CMYK or RGB composite) | Sharp plus the same **PSD/PSB** composite decode |
 | **Packaging**      | Static site hosted on GitHub Pages                                              | macOS `.dmg` and `.zip` build configuration included |
 
 ### Current limits
 
 - Output dimensions are limited to 8,192 pixels per side and 32 megapixels per image. Large source images and extensive batches can still consume significant memory; available capacity depends on the browser and device.
 - Animated inputs are processed as still images; animation is not preserved.
+- Photoshop **PSD/PSB** files use the merged composite (CMYK or RGB, 8-bit). Layers, adjustment stacks, and smart objects are not preserved. Very large PSDs can take time and memory, especially in the browser.
 - HEIC, HEIF, TIFF, and other specialist source formats depend on decoder support. A file extension alone does not guarantee compatibility.
 - Browser and desktop encoders can produce different file sizes and pixel results. This is not a color-managed print production workflow.
 - The project does not provide cloud storage, project sync, background uploads, or AI upscaling.
