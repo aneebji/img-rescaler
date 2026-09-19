@@ -1,4 +1,12 @@
 import JSZip from "jszip";
+import {
+  normalizeCrop,
+  normalizeExportOptions,
+  outputFileName,
+  safeFileName,
+  uniqueName,
+  validateResolutions,
+} from "./export-utils.mjs";
 
 const filesById = new Map();
 const progressListeners = new Set();
@@ -14,89 +22,14 @@ function formatRunStamp(date = new Date()) {
   ].join("_");
 }
 
-function fileBase(name) {
-  const slash = name.lastIndexOf("/");
-  const base = slash >= 0 ? name.slice(slash + 1) : name;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(0, dot) : base;
-}
-
-function uniqueName(used, name) {
-  if (!used.has(name)) {
-    used.add(name);
-    return name;
-  }
-
-  const dot = name.lastIndexOf(".");
-  const stem = dot > 0 ? name.slice(0, dot) : name;
-  const ext = dot > 0 ? name.slice(dot) : "";
-  let suffix = 2;
-  let next = `${stem}-${suffix}${ext}`;
-
-  while (used.has(next)) {
-    suffix += 1;
-    next = `${stem}-${suffix}${ext}`;
-  }
-
-  used.add(next);
-  return next;
-}
-
-function coverCrop(srcW, srcH, aspect) {
-  const imageAspect = srcW / srcH;
-  let width;
-  let height;
-
-  if (imageAspect > aspect) {
-    height = srcH;
-    width = srcH * aspect;
-  } else {
-    width = srcW;
-    height = srcW / aspect;
-  }
-
-  return {
-    left: (srcW - width) / 2,
-    top: (srcH - height) / 2,
-    width,
-    height,
-  };
-}
-
-function integerCrop(crop, srcW, srcH) {
-  let left = Math.max(0, Math.round(crop.left));
-  let top = Math.max(0, Math.round(crop.top));
-  let width = Math.max(1, Math.round(crop.width));
-  let height = Math.max(1, Math.round(crop.height));
-
-  if (left + width > srcW) {
-    width = srcW - left;
-  }
-  if (top + height > srcH) {
-    height = srcH - top;
-  }
-
-  return {
-    left,
-    top,
-    width: Math.max(1, width),
-    height: Math.max(1, height),
-  };
-}
-
-function normalizeCrop(crop, srcW, srcH, targetW, targetH) {
-  if (!srcW || !srcH) {
-    throw new Error("Could not read image size");
-  }
-
-  const fallback = coverCrop(srcW, srcH, targetW / targetH);
-  const source = crop && crop.width > 0 && crop.height > 0 ? crop : fallback;
-  return integerCrop(source, srcW, srcH);
-}
-
 function emitProgress(data) {
   for (const listener of progressListeners) {
-    listener(data);
+    // A failed UI listener must not interrupt an export or other listeners.
+    try {
+      listener(data);
+    } catch (error) {
+      console.error("Progress listener failed", error);
+    }
   }
 }
 
@@ -105,7 +38,11 @@ async function decodeBitmap(file) {
     try {
       return await createImageBitmap(file, { imageOrientation: "from-image" });
     } catch {
-      return createImageBitmap(file);
+      try {
+        return await createImageBitmap(file);
+      } catch {
+        // Some browsers decode formats such as SVG only through an Image element.
+      }
     }
   }
 
@@ -156,6 +93,7 @@ async function inspectFiles(fileList) {
         name,
         width,
         height,
+        size: file.size,
       });
     } catch (error) {
       infos.push({
@@ -164,6 +102,7 @@ async function inspectFiles(fileList) {
         name,
         width: 0,
         height: 0,
+        size: file.size,
         error: error.message || "Could not read image",
       });
     }
@@ -172,19 +111,44 @@ async function inspectFiles(fileList) {
   return infos;
 }
 
+async function loadSampleImage() {
+  const response = await fetch(new URL("./sample.svg", window.location.href));
+  if (!response.ok)
+    throw new Error(
+      "The sample image could not be loaded. Add your own image to continue.",
+    );
+  const file = new File([await response.blob()], "quiet-landscape.svg", {
+    type: "image/svg+xml",
+  });
+  return inspectFiles([file]);
+}
+
 function openFilePicker() {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
     input.accept = "image/*";
-    input.addEventListener(
-      "change",
-      () => {
-        resolve([...(input.files || [])]);
-      },
-      { once: true }
-    );
+    input.hidden = true;
+    let settled = false;
+    let focusTimer;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("focus", onFocus);
+      const files = [...(input.files || [])];
+      input.remove();
+      resolve(files);
+    };
+    // Older browsers may not dispatch the input cancel event.
+    const onFocus = () => {
+      focusTimer = window.setTimeout(finish, 500);
+    };
+    input.addEventListener("change", finish, { once: true });
+    input.addEventListener("cancel", finish, { once: true });
+    window.addEventListener("focus", onFocus, { once: true });
+    document.body.append(input);
     input.click();
   });
 }
@@ -217,13 +181,16 @@ async function getImagePreview(id) {
   canvas.width = previewWidth;
   canvas.height = previewHeight;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, 0, 0, previewWidth, previewHeight);
-  if (typeof bitmap.close === "function") {
-    bitmap.close();
+  try {
+    if (!ctx)
+      throw new Error("Your browser could not create an image preview.");
+    ctx.drawImage(bitmap, 0, 0, previewWidth, previewHeight);
+  } finally {
+    if (typeof bitmap.close === "function") bitmap.close();
   }
 
   return {
-    dataUrl: canvas.toDataURL("image/jpeg", 0.86),
+    dataUrl: canvas.toDataURL("image/png"),
     width,
     height,
     previewWidth,
@@ -231,90 +198,147 @@ async function getImagePreview(id) {
   };
 }
 
-async function cropToPng(file, crop, targetW, targetH) {
+async function cropToImage(file, crop, targetW, targetH, { format, quality }) {
   const bitmap = await decodeBitmap(file);
-  const { width, height } = bitmapSize(bitmap);
-  const region = normalizeCrop(crop, width, height, targetW, targetH);
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(
-    bitmap,
-    region.left,
-    region.top,
-    region.width,
-    region.height,
-    0,
-    0,
-    targetW,
-    targetH
-  );
-  if (typeof bitmap.close === "function") {
-    bitmap.close();
+  try {
+    const { width, height } = bitmapSize(bitmap);
+    const region = normalizeCrop(crop, width, height, targetW, targetH);
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      throw new Error("Your browser could not create an export canvas.");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    if (format === "jpeg") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, targetW, targetH);
+    }
+    ctx.drawImage(
+      bitmap,
+      region.left,
+      region.top,
+      region.width,
+      region.height,
+      0,
+      0,
+      targetW,
+      targetH,
+    );
+    const mime = `image/${format}`;
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(
+              new Error(
+                `Could not encode ${format.toUpperCase()}. Try a smaller output size.`,
+              ),
+            );
+          } else if (blob.type !== mime) {
+            reject(
+              new Error(
+                `This browser cannot export ${format.toUpperCase()}. Choose PNG or JPEG.`,
+              ),
+            );
+          } else {
+            resolve(blob);
+          }
+        },
+        mime,
+        quality,
+      );
+    });
+  } finally {
+    if (typeof bitmap.close === "function") bitmap.close();
+    // Release large canvas backing stores between sequential export jobs.
+    canvas.width = 0;
+    canvas.height = 0;
   }
-
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((next) => {
-      if (next) {
-        resolve(next);
-      } else {
-        reject(new Error("Could not encode PNG"));
-      }
-    }, "image/png");
-  });
-
-  return blob;
 }
 
-async function resizeImages({ images, resolutions, crops }) {
-  const stamp = formatRunStamp();
-  const folder = `ImageRescaler_${stamp}`;
+async function resizeImages(payload = {}) {
+  const { images, crops } = payload;
+  const options = normalizeExportOptions(payload);
+  const resolutions = validateResolutions(payload.resolutions);
+  if (
+    !Array.isArray(images) ||
+    !images.length ||
+    images.some((item) => !item || typeof (item.id || item.path) !== "string")
+  ) {
+    throw new Error("Add at least one valid image to export.");
+  }
+  const folder = `ImageRescaler_${formatRunStamp()}`;
   const zip = new JSZip();
   const usedOriginals = new Set();
+  const usedOutputs = new Set();
   const results = [];
-  const jobs = [];
+  const jobs = images.flatMap((image) =>
+    resolutions.map((resolution) => ({ image, resolution })),
+  );
+  const progress = (data) =>
+    emitProgress({
+      total: jobs.length,
+      file: "",
+      preset: "",
+      done: false,
+      ...data,
+    });
+  progress({ phase: "preparing", current: 0, percent: 0 });
 
-  for (const image of images) {
-    for (const resolution of resolutions) {
-      jobs.push({ image, resolution });
+  if (options.includeOriginals) {
+    const seen = new Set();
+    for (const image of images) {
+      const imageKey = image.id || image.path;
+      const file = filesById.get(imageKey);
+      if (!file || seen.has(imageKey)) continue;
+      seen.add(imageKey);
+      const originalName = uniqueName(
+        usedOriginals,
+        safeFileName(image.name || file.name || "image"),
+      );
+      zip.file(`${folder}/originals/${originalName}`, file);
     }
-  }
-
-  for (const image of images) {
-    const file = filesById.get(image.id || image.path);
-    if (!file) {
-      continue;
-    }
-    const originalName = uniqueName(usedOriginals, image.name || file.name || "image");
-    zip.file(`${folder}/originals/${originalName}`, file);
   }
 
   for (let index = 0; index < jobs.length; index += 1) {
     const { image, resolution } = jobs[index];
-    const presetWidth = Number(resolution.width);
-    const presetHeight = Number(resolution.height);
+    const presetWidth = resolution.width;
+    const presetHeight = resolution.height;
     const key = `${presetWidth}x${presetHeight}`;
     const imageKey = image.id || image.path;
-
-    emitProgress({
-      current: index + 1,
-      total: jobs.length,
+    progress({
+      phase: "resizing",
+      current: index,
+      percent: (index / jobs.length) * 88,
       file: image.name,
       preset: key,
     });
 
     try {
       const file = filesById.get(imageKey);
-      if (!file) {
-        throw new Error("Image is no longer available");
-      }
-
+      if (!file)
+        throw new Error(
+          "Image is no longer available. Add it again to export.",
+        );
       const crop = crops?.[imageKey]?.[key] || crops?.[image.path]?.[key];
-      const blob = await cropToPng(file, crop, presetWidth, presetHeight);
-      const outputName = `${fileBase(image.name)}_${presetWidth}x${presetHeight}.png`;
+      const blob = await cropToImage(
+        file,
+        crop,
+        presetWidth,
+        presetHeight,
+        options,
+      );
+      const outputName = uniqueName(
+        usedOutputs,
+        outputFileName(
+          image.name || file.name,
+          presetWidth,
+          presetHeight,
+          options.format,
+        ),
+      );
       const outputPath = `${folder}/${outputName}`;
       zip.file(outputPath, blob);
       results.push({
@@ -324,6 +348,8 @@ async function resizeImages({ images, resolutions, crops }) {
         outputPath,
         width: presetWidth,
         height: presetHeight,
+        format: options.format,
+        size: blob.size,
         error: null,
       });
     } catch (error) {
@@ -334,20 +360,30 @@ async function resizeImages({ images, resolutions, crops }) {
         outputPath: null,
         width: null,
         height: null,
+        format: options.format,
+        size: 0,
         error: error.message || "Resize failed",
       });
     }
+    progress({
+      phase: "resizing",
+      current: index + 1,
+      percent: ((index + 1) / jobs.length) * 88,
+      file: image.name,
+      preset: key,
+    });
+    // Give the browser a chance to paint progress between jobs.
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
   }
 
-  emitProgress({
-    current: jobs.length,
-    total: jobs.length,
-    file: "",
-    preset: "",
-    done: true,
+  progress({ phase: "packaging", current: jobs.length, percent: 88 });
+  const zipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
+    progress({
+      phase: "packaging",
+      current: jobs.length,
+      percent: Math.min(99, 88 + metadata.percent * 0.11),
+    });
   });
-
-  const zipBlob = await zip.generateAsync({ type: "blob" });
   const href = URL.createObjectURL(zipBlob);
   const link = document.createElement("a");
   link.href = href;
@@ -355,9 +391,14 @@ async function resizeImages({ images, resolutions, crops }) {
   document.body.append(link);
   link.click();
   link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(href), 30_000);
-
-  return { outputDir: folder, results };
+  window.setTimeout(() => URL.revokeObjectURL(href), 60_000);
+  progress({
+    phase: "complete",
+    current: jobs.length,
+    percent: 100,
+    done: true,
+  });
+  return { outputDir: folder, results, size: zipBlob.size };
 }
 
 export function installWebApi() {
@@ -369,6 +410,7 @@ export function installWebApi() {
     isWeb: true,
     getDefaultOutput: async () => "ZIP download",
     pickImages: async () => inspectFiles(await openFilePicker()),
+    loadSampleImage,
     inspectFiles: (fileList) => inspectFiles(fileList),
     inspectPaths: async () => [],
     getImagePreview,

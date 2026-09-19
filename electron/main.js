@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const { pathToFileURL } = require("node:url");
 const sharp = require("sharp");
+const exportUtils = import("../src/export-utils.mjs");
 
 const IMAGE_FILTER_EXTENSIONS = [
   "jpg",
@@ -29,9 +31,7 @@ function getDefaultOutputDir() {
     return path.join(process.cwd(), "output");
   }
 
-  const exe = app.getPath("exe");
-  const appBundle = path.resolve(exe, "..", "..", "..");
-  return path.join(path.dirname(appBundle), "output");
+  return path.join(app.getPath("pictures"), "Image Rescaler");
 }
 
 function pad2(value) {
@@ -99,73 +99,69 @@ async function createRunDir(parent) {
   }
 }
 
-function coverCrop(srcW, srcH, aspect) {
-  const imageAspect = srcW / srcH;
-  let width;
-  let height;
-
-  if (imageAspect > aspect) {
-    height = srcH;
-    width = srcH * aspect;
-  } else {
-    width = srcW;
-    height = srcW / aspect;
-  }
-
-  return {
-    left: (srcW - width) / 2,
-    top: (srcH - height) / 2,
-    width,
-    height,
-  };
+function validPath(value) {
+  return typeof value === "string" && value.length > 0 && !value.includes("\0");
 }
 
-function integerCrop(crop, srcW, srcH) {
-  let left = Math.max(0, Math.round(crop.left));
-  let top = Math.max(0, Math.round(crop.top));
-  let width = Math.max(1, Math.round(crop.width));
-  let height = Math.max(1, Math.round(crop.height));
-
-  if (left + width > srcW) {
-    width = srcW - left;
-  }
-  if (top + height > srcH) {
-    height = srcH - top;
-  }
-
-  return {
-    left,
-    top,
-    width: Math.max(1, width),
-    height: Math.max(1, height),
-  };
+function handle(channel, callback) {
+  ipcMain.handle(channel, (event, ...args) => {
+    const source = event.senderFrame;
+    const url = source?.url || "";
+    const expectedFile = pathToFileURL(
+      path.join(__dirname, "..", "dist-renderer", "index.html"),
+    ).href;
+    const trusted = isDev()
+      ? /^http:\/\/127\.0\.0\.1:5173(?:\/|$)/.test(url)
+      : url.split("#")[0] === expectedFile;
+    if (!trusted || source !== event.sender.mainFrame)
+      throw new Error("Untrusted application request.");
+    return callback(event, ...args);
+  });
 }
 
-function normalizeCrop(crop, srcW, srcH, targetW, targetH) {
-  if (!srcW || !srcH) {
-    throw new Error("Could not read image size");
+function openTrustedExternal(value) {
+  try {
+    const url = new URL(value);
+    const repositoryPath = "/aneebji/img-rescaler";
+    const allowedPath =
+      url.pathname === repositoryPath ||
+      url.pathname.startsWith(`${repositoryPath}/`);
+    if (
+      url.origin !== "https://github.com" ||
+      url.username ||
+      url.password ||
+      !allowedPath
+    )
+      return;
+    void shell
+      .openExternal(url.href)
+      .catch((error) => console.error("Could not open repository link", error));
+  } catch {
+    // Ignore malformed URLs and keep the renderer in its local application page.
   }
-
-  const fallback = coverCrop(srcW, srcH, targetW / targetH);
-  const source = crop && crop.width > 0 && crop.height > 0 ? crop : fallback;
-  return integerCrop(source, srcW, srcH);
 }
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1100,
-    height: 860,
-    minWidth: 900,
-    minHeight: 720,
+    width: 1400,
+    height: 950,
+    minWidth: 780,
+    minHeight: 650,
     title: "Image Rescaler",
-    backgroundColor: "#141414",
+    backgroundColor: "#f6f7f4",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    openTrustedExternal(url);
+    return { action: "deny" };
+  });
+  win.webContents.on("will-navigate", (event) => event.preventDefault());
 
   if (isDev()) {
     win.loadURL("http://127.0.0.1:5173");
@@ -190,9 +186,17 @@ app.on("window-all-closed", () => {
   }
 });
 
-ipcMain.handle("get-default-output", () => getDefaultOutputDir());
+handle("get-default-output", () => getDefaultOutputDir());
 
-ipcMain.handle("pick-images", async () => {
+handle("load-sample-image", () =>
+  readImageInfos([
+    isDev()
+      ? path.join(__dirname, "..", "src/public", "sample.svg")
+      : path.join(process.resourcesPath, "sample.svg"),
+  ]),
+);
+
+handle("pick-images", async () => {
   const result = await dialog.showOpenDialog({
     title: "Choose images",
     properties: ["openFile", "multiSelections"],
@@ -215,15 +219,15 @@ ipcMain.handle("pick-images", async () => {
   return readImageInfos(result.filePaths);
 });
 
-ipcMain.handle("inspect-paths", async (_event, filePaths) => {
+handle("inspect-paths", async (_event, filePaths) => {
   return readImageInfos(filePaths);
 });
 
-ipcMain.handle("get-image-preview", async (_event, filePath) => {
+handle("get-image-preview", async (_event, filePath) => {
   return readImagePreview(filePath);
 });
 
-ipcMain.handle("pick-output-folder", async () => {
+handle("pick-output-folder", async () => {
   const result = await dialog.showOpenDialog({
     title: "Choose output folder",
     properties: ["openDirectory", "createDirectory"],
@@ -236,14 +240,14 @@ ipcMain.handle("pick-output-folder", async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle("reveal-item", (_event, filePath) => {
-  if (filePath) {
+handle("reveal-item", (_event, filePath) => {
+  if (validPath(filePath)) {
     shell.showItemInFolder(filePath);
   }
 });
 
-ipcMain.handle("reveal-folder", async (_event, folderPath) => {
-  if (!folderPath) {
+handle("reveal-folder", async (_event, folderPath) => {
+  if (!validPath(folderPath)) {
     return;
   }
 
@@ -251,91 +255,123 @@ ipcMain.handle("reveal-folder", async (_event, folderPath) => {
   await shell.openPath(folderPath);
 });
 
-ipcMain.handle(
-  "resize-images",
-  async (event, { images, resolutions, outputDir, crops }) => {
-    const parent = outputDir || getDefaultOutputDir();
-    const dest = await createRunDir(parent);
-    await copyOriginals(dest, images);
-
-    const jobs = [];
-    for (const image of images) {
-      for (const resolution of resolutions) {
-        jobs.push({ image, resolution });
-      }
-    }
-
-    const results = [];
-
-    for (let index = 0; index < jobs.length; index += 1) {
-      const { image, resolution } = jobs[index];
-      const presetWidth = Number(resolution.width);
-      const presetHeight = Number(resolution.height);
-      const cropKey = `${presetWidth}x${presetHeight}`;
-      const crop = crops?.[image.id]?.[cropKey] || crops?.[image.path]?.[cropKey];
-
+handle("resize-images", async (event, payload = {}) => {
+  const { normalizeExportOptions, validateResolutions } = await exportUtils;
+  const options = normalizeExportOptions(payload);
+  const resolutions = validateResolutions(payload.resolutions);
+  const { images, crops, outputDir } = payload;
+  if (
+    !Array.isArray(images) ||
+    !images.length ||
+    images.some((image) => !validPath(image?.path))
+  ) {
+    throw new Error("Add at least one valid image to export.");
+  }
+  if (outputDir != null && !validPath(outputDir))
+    throw new Error("Choose a valid output folder.");
+  const parent = outputDir || getDefaultOutputDir();
+  const dest = await createRunDir(parent);
+  const jobs = images.flatMap((image) =>
+    resolutions.map((resolution) => ({ image, resolution })),
+  );
+  const progress = (data) => {
+    if (!event.sender.isDestroyed()) {
       event.sender.send("resize-progress", {
-        current: index + 1,
         total: jobs.length,
-        file: path.basename(image.path),
-        preset: cropKey,
+        file: "",
+        preset: "",
+        done: false,
+        ...data,
       });
+    }
+  };
+  progress({ phase: "preparing", current: 0, percent: 0 });
+  if (options.includeOriginals) await copyOriginals(dest, images);
+  const results = [];
+  const usedOutputs = new Set();
 
-      try {
-        const result = await resizeOne({
+  for (let index = 0; index < jobs.length; index += 1) {
+    const { image, resolution } = jobs[index];
+    const presetWidth = resolution.width;
+    const presetHeight = resolution.height;
+    const cropKey = `${presetWidth}x${presetHeight}`;
+    const crop = crops?.[image.id]?.[cropKey] || crops?.[image.path]?.[cropKey];
+    progress({
+      phase: "resizing",
+      current: index,
+      percent: (index / jobs.length) * 99,
+      file: path.basename(image.path),
+      preset: cropKey,
+    });
+    try {
+      results.push(
+        await resizeOne({
           inputPath: image.path,
           dest,
           presetWidth,
           presetHeight,
           crop,
-        });
-        results.push(result);
-      } catch (error) {
-        results.push({
-          source: image.path,
-          presetWidth,
-          presetHeight,
-          outputPath: null,
-          width: null,
-          height: null,
-          error: error.message || "Resize failed",
-        });
-      }
+          usedOutputs,
+          ...options,
+        }),
+      );
+    } catch (error) {
+      results.push({
+        source: image.path,
+        presetWidth,
+        presetHeight,
+        outputPath: null,
+        width: null,
+        height: null,
+        format: options.format,
+        size: 0,
+        error: error.message || "Resize failed",
+      });
     }
-
-    event.sender.send("resize-progress", {
-      current: jobs.length,
-      total: jobs.length,
-      file: "",
-      preset: "",
-      done: true,
+    progress({
+      phase: "resizing",
+      current: index + 1,
+      percent: ((index + 1) / jobs.length) * 99,
+      file: path.basename(image.path),
+      preset: cropKey,
     });
-
-    return { outputDir: dest, results };
   }
-);
+  progress({
+    phase: "complete",
+    current: jobs.length,
+    percent: 100,
+    done: true,
+  });
+  return { outputDir: dest, results };
+});
 
 async function readImageInfos(filePaths) {
+  if (!Array.isArray(filePaths))
+    throw new Error("Choose image files to inspect.");
+  const { orientedDimensions } = await exportUtils;
   const infos = [];
 
   for (const filePath of filePaths) {
-    if (!filePath) {
-      continue;
-    }
-
+    if (!validPath(filePath)) continue;
+    let size = 0;
     try {
       const stat = await fs.stat(filePath);
       if (!stat.isFile()) {
         continue;
       }
 
-      const metadata = await sharp(filePath).rotate().metadata();
+      size = stat.size;
+      const metadata = await sharp(filePath).metadata();
+      const { width, height } = orientedDimensions(metadata);
+      if (!width || !height)
+        throw new Error("Could not read image dimensions.");
       infos.push({
         id: filePath,
         path: filePath,
         name: path.basename(filePath),
-        width: metadata.width || 0,
-        height: metadata.height || 0,
+        width,
+        height,
+        size,
       });
     } catch (error) {
       infos.push({
@@ -344,6 +380,7 @@ async function readImageInfos(filePaths) {
         name: path.basename(filePath),
         width: 0,
         height: 0,
+        size,
         error: error.message || "Could not read image",
       });
     }
@@ -353,9 +390,10 @@ async function readImageInfos(filePaths) {
 }
 
 async function readImagePreview(filePath) {
-  const metadata = await sharp(filePath).rotate().metadata();
-  const width = metadata.width || 0;
-  const height = metadata.height || 0;
+  if (!validPath(filePath)) throw new Error("Choose a valid image file.");
+  const { orientedDimensions } = await exportUtils;
+  const metadata = await sharp(filePath).metadata();
+  const { width, height } = orientedDimensions(metadata);
 
   if (!width || !height) {
     throw new Error("Could not read image size");
@@ -393,36 +431,38 @@ async function resizeOne({
   presetWidth,
   presetHeight,
   crop,
+  usedOutputs,
+  format,
+  quality,
 }) {
-  const ext = path.extname(inputPath);
-  const base = path.basename(inputPath, ext);
-  const outputPath = path.join(
-    dest,
-    `${base}_${presetWidth}x${presetHeight}.png`
+  const { normalizeCrop, orientedDimensions, outputFileName, uniqueName } =
+    await exportUtils;
+  const name = uniqueName(
+    usedOutputs,
+    outputFileName(path.basename(inputPath), presetWidth, presetHeight, format),
   );
-
-  const metadata = await sharp(inputPath).rotate().metadata();
-  const region = normalizeCrop(
-    crop,
-    metadata.width || 0,
-    metadata.height || 0,
-    presetWidth,
-    presetHeight
-  );
-
-  const info = await sharp(inputPath)
+  const outputPath = await uniqueDestName(dest, name);
+  const metadata = await sharp(inputPath).metadata();
+  const { width, height } = orientedDimensions(metadata);
+  const region = normalizeCrop(crop, width, height, presetWidth, presetHeight);
+  let pipeline = sharp(inputPath)
     .rotate()
     .extract(region)
     .resize(presetWidth, presetHeight, {
       fit: "fill",
       kernel: sharp.kernel.lanczos3,
-    })
-    .png({
-      compressionLevel: 9,
-      effort: 10,
-    })
-    .toFile(outputPath);
-
+    });
+  const encoderQuality = Math.max(1, Math.round(quality * 100));
+  if (format === "jpeg") {
+    pipeline = pipeline
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: encoderQuality, mozjpeg: true });
+  } else if (format === "webp") {
+    pipeline = pipeline.webp({ quality: encoderQuality, effort: 5 });
+  } else {
+    pipeline = pipeline.png({ compressionLevel: 9 });
+  }
+  const info = await pipeline.toFile(outputPath);
   return {
     source: inputPath,
     presetWidth,
@@ -430,6 +470,8 @@ async function resizeOne({
     outputPath,
     width: info.width,
     height: info.height,
+    format,
+    size: info.size,
     error: null,
   };
 }

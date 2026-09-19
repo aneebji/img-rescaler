@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a reproducible problem with the workspace or exported images.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Image Rescaler. Search existing issues before submitting.
+        For vulnerabilities, follow SECURITY.md rather than posting details here.
+        Use non-sensitive sample images you have permission to share.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected to happen.
+      placeholder: When I export two images at 1080 × 1080...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include image formats, target dimensions, export settings, and crop actions where relevant.
+      placeholder: |
+        1. Open the browser app...
+        2. Add...
+        3. Export...
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Where does this happen?
+      options:
+        - Hosted browser app
+        - Local browser app
+        - Electron desktop app
+        - Build or installation
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and browser version; include Node.js version for local development.
+      placeholder: macOS / Windows / Linux, browser name and version
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: For the live app, provide the date you observed the issue. For a checkout, provide the commit hash.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, sample files, or error messages
+      description: Remove private data, file paths, and metadata before attaching evidence. A minimal sample is helpful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched for an existing issue describing this problem.
+          required: true
+        - label: This report does not contain confidential images, credentials, or private vulnerability details.
+          required: true

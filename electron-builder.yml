@@ -4,14 +4,19 @@ directories:
   output: release
 files:
   - electron/**/*
+  - src/export-utils.mjs
   - dist-renderer/**/*
   - package.json
+extraResources:
+  - from: src/public/sample.svg
+    to: sample.svg
 asar: true
 asarUnpack:
   - "**/node_modules/sharp/**/*"
   - "**/node_modules/@img/**/*"
 npmRebuild: true
 mac:
+  icon: build/icon.icns
   category: public.app-category.photography
   target:
     - dmg

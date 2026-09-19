@@ -1,27 +1,45 @@
 {
   "name": "image-rescaler",
   "productName": "Image Rescaler",
-  "version": "1.0.0",
-  "description": "Web and desktop app for exact-size PNG exports with a live, per-resolution crop editor",
+  "version": "2.0.0",
+  "description": "A private image workspace for precise crops, batch resizing, and PNG, JPEG, and WebP exports.",
   "main": "electron/main.js",
-  "author": "Image Rescaler",
+  "author": "Aneeb",
   "license": "MIT",
+  "homepage": "https://aneebji.github.io/img-rescaler/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aneebji/img-rescaler.git"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "dev:web": "vite",
+    "preview:web": "vite preview --host 127.0.0.1",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.cjs",
+    "test:e2e": "playwright test",
     "build": "vite build",
-    "build:pages": "vite build && rm -rf docs && cp -R dist-renderer docs",
+    "build:pages": "vite build && node scripts/build-pages.mjs",
     "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "format": "prettier --write src electron scripts tests *.mjs package.json .github *.md",
+    "format:check": "prettier --check src electron scripts tests *.mjs package.json .github *.md"
   },
   "dependencies": {
     "jszip": "^3.10.2",
-    "sharp": "^0.34.4"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "concurrently": "^9.2.1",
-    "electron": "36.9.5",
-    "electron-builder": "^25.1.8",
-    "vite": "^6.3.5",
+    "electron": "44.4.3",
+    "electron-builder": "^26.15.3",
+    "prettier": "^3.9.8",
+    "vite": "^8.3.0",
     "wait-on": "^8.0.5"
   }
 }

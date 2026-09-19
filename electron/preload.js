@@ -3,8 +3,10 @@ const { contextBridge, ipcRenderer, webUtils } = require("electron");
 contextBridge.exposeInMainWorld("api", {
   getDefaultOutput: () => ipcRenderer.invoke("get-default-output"),
   pickImages: () => ipcRenderer.invoke("pick-images"),
+  loadSampleImage: () => ipcRenderer.invoke("load-sample-image"),
   inspectPaths: (filePaths) => ipcRenderer.invoke("inspect-paths", filePaths),
-  getImagePreview: (filePath) => ipcRenderer.invoke("get-image-preview", filePath),
+  getImagePreview: (filePath) =>
+    ipcRenderer.invoke("get-image-preview", filePath),
   pickOutputFolder: () => ipcRenderer.invoke("pick-output-folder"),
   revealItem: (filePath) => ipcRenderer.invoke("reveal-item", filePath),
   revealFolder: (folderPath) => ipcRenderer.invoke("reveal-folder", folderPath),

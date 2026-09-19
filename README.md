@@ -1,98 +1,192 @@
+<div align="center">
+
 # Image Rescaler
 
-**Exact-size PNG exports. One crop per resolution. No stretch.**
+### One image. Every size. Your composition.
 
-A desktop and web app for production image batches — product shots, print layouts, and profile frames — where every output must match a target size and a chosen composition.
+A focused image workspace for preparing product photos, social assets, and web images.\
+Set your sizes, refine each crop, and export the entire batch in one go.
 
-[![Website](https://img.shields.io/badge/web_app-aneebji.github.io-0A84FF?logo=github)](https://aneebji.github.io/img-rescaler/)
-[![macOS](https://img.shields.io/badge/macOS-supported-111111?logo=apple&logoColor=white)](https://github.com/aneebji/img-rescaler)
-[![Electron](https://img.shields.io/badge/Electron-36-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Sharp](https://img.shields.io/badge/Sharp-0.34-99CC00?logo=imagemagick&logoColor=white)](https://sharp.pixelplumbing.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0A84FF.svg)](./LICENSE)
+[![Open workspace](https://img.shields.io/badge/Open_workspace-Live_app-3e583b?style=flat-square)](https://aneebji.github.io/img-rescaler/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-222222?style=flat-square)](./LICENSE)
+[![Processing](https://img.shields.io/badge/Image_processing-On_your_device-167b52?style=flat-square)](#privacy)
+[![Version](https://img.shields.io/badge/Version-2.0.0-3e583b?style=flat-square)](./CHANGELOG.md)
 
-**Web app (crop + ZIP):** [aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)  
-**Clone:** `git clone https://github.com/aneebji/img-rescaler.git`
+[**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
 
----
+</div>
 
-## Why this exists
+![Image Rescaler workspace showing the image library, visual crop editor, and export settings](./media/workspace.png)
 
-Generic resizers either pad empty bars or squash the photo. Image Rescaler shows the full photo with a crop frame for each target aspect ratio. You pan or zoom until the frame is right. Every image × size keeps its own crop. Export is always PNG at the exact pixel dimensions you asked for.
+<details>
+<summary>Explore the dark workspace and mobile layout</summary>
 
-## Capabilities
+![Dark workspace](./media/workspace-dark.png)
 
-- **Full-photo crop editor** — the whole image stays visible; the box matches each size
-- **Independent frames** — switch resolutions and keep a separate composition for each size
-- **Web ZIP download** — Rescale saves `originals/` plus `{name}_{width}x{height}.png` in one dated ZIP
-- **Desktop run folders** — same originals + PNGs in `output/YYYY-MM-DD_HH-mm-ss/`
-- **Broad ingest** — JPG, PNG, WebP, GIF, BMP, and more (HEIC/TIFF need the desktop app)
-- **Batch jobs** — one run, every selected image × every size
+<img src="./media/workspace-mobile.png" alt="Image Rescaler on a mobile screen" width="320" />
 
-## Default sizes
+</details>
 
-These presets load on launch and can be removed or extended:
+## A practical workspace for image delivery
 
-| Width | Height | Aspect |
-| ---: | ---: | --- |
-| 680 | 1000 | Portrait |
-| 1020 | 1000 | Near-square |
-| 1119 | 1527 | Tall portrait |
-| 1119 | 648 | Wide landscape |
+Different destinations need different compositions. A product thumbnail, a portrait post, and a wide banner should each have a considered crop. Image Rescaler keeps a separate crop for every image and output size, then generates the whole batch at exact pixel dimensions.
 
-Newly added sizes move to the front and stay selected so the last one you defined is the one you preview.
+Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, without an account, or run the Electron desktop app locally.
 
-## Workflow
+| Capability                 | What it does                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Batch processing**       | Add multiple images and generate every image × selected size combination.                                                     |
+| **Visual crop control**    | Frame each composition with drag, zoom, and a live output preview. Each image and size keeps its own crop during the session. |
+| **Useful size presets**    | Start with Social, Commerce, Web, or the original sizes, or enter custom pixel dimensions.                                    |
+| **PNG, JPEG, and WebP**    | Choose an export format, with adjustable quality for JPEG and WebP.                                                           |
+| **Organized delivery**     | Download a ZIP in the browser or save to a local run folder on desktop. Include source originals when needed.                 |
+| **A considered interface** | Responsive layout, light and dark themes, and keyboard and touch crop controls.                                               |
+| **Try before importing**   | Explore the browser workspace with the built-in sample image.                                                                 |
+| **Local image processing** | Images are decoded, cropped, and encoded on your device. No image upload service or account is required.                      |
 
-1. Drop images or use **Add images**.
-2. Keep the defaults, or add more `width × height` targets.
-3. Select a photo and a size. Drag the box and scroll to zoom.
-4. Click **Rescale**.
-   - **Web:** a ZIP downloads with `originals/` and every PNG.
-   - **Desktop:** a dated folder is created with the same layout.
+## From source to export
 
-## Quick start
+1. **Add your images.** Use the file picker or drag files into the workspace. Try the sample for a quick walkthrough.
+2. **Choose your output sizes.** Add presets or custom dimensions. Multiple sizes produce multiple exports per image.
+3. **Compose each crop.** Select an image and a size, then move or zoom the crop. Check the output preview before continuing.
+4. **Set your export options.** Choose PNG, JPEG, or WebP, adjust quality where applicable, and decide whether to include originals.
+5. **Export the batch.** Download the ZIP in the browser or open the destination folder on desktop. Review the result summary for any failed images.
 
-**Use it in the browser:** [aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)
+### Choosing an export format
 
-**Desktop (Node.js 18+, macOS):**
+| Format   | A good fit for                                    | Notes                                                                                 |
+| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **PNG**  | Graphics, transparent assets, and lossless output | Supports transparency; quality control does not apply.                                |
+| **JPEG** | Photos and widely compatible delivery             | Uses a white background for transparent pixels; quality affects detail and file size. |
+| **WebP** | Web images with transparency or lossy compression | Quality affects detail and file size. Browser encoder availability may vary.          |
+
+The app performs conventional image resizing. Enlarging a small source does not recover detail that was absent from the original.
+
+### Predictable output
+
+Exports use names such as `product_1080x1080.webp`. When names collide, a numeric suffix keeps each output distinct. A browser export downloads as `ImageRescaler_YYYY-MM-DD_HH-mm-ss.zip`; desktop exports go into a dated folder. If enabled, untouched source files are included in an `originals/` subfolder.
+
+### Keyboard controls
+
+| Key                  | Action                      |
+| -------------------- | --------------------------- |
+| `O`                  | Add images                  |
+| Arrow keys           | Move the selected crop      |
+| `Shift` + arrow keys | Move the crop faster        |
+| `+` / `−`            | Zoom the selected crop      |
+| `0`                  | Reset the selected crop     |
+| `?`                  | Open keyboard shortcut help |
+
+Workspace shortcuts are ignored while typing in a form field.
+
+## Privacy
+
+Your selected images stay on your device. The browser app processes files using browser image APIs and packages downloads locally with JSZip. The desktop app uses Sharp and writes to your chosen local folder. The app does not upload image files to a server.
+
+The hosted page still makes normal requests to load the application, and the hosting provider may log those requests. Keeping an original in your export also keeps that original file's metadata. Review originals before sharing an archive when metadata matters.
+
+Image files and crop edits are session data, not a saved project. Export your work before refreshing or closing the app.
+
+## Browser and desktop
+
+|                    | Browser                                                                         | Desktop                                              |
+| ------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)                    | Run locally from source                              |
+| **Processing**     | Browser image decoding and Canvas                                               | Sharp in Electron's main process                     |
+| **Delivery**       | ZIP download                                                                    | Dated local output folder                            |
+| **Source formats** | Formats supported by your browser; PNG, JPEG, and WebP are good starting points | Formats supported by the installed Sharp build       |
+| **Packaging**      | Static site hosted on GitHub Pages                                              | macOS `.dmg` and `.zip` build configuration included |
+
+### Current limits
+
+- Output dimensions are limited to 8,192 pixels per side and 32 megapixels per image. Large source images and extensive batches can still consume significant memory; available capacity depends on the browser and device.
+- Animated inputs are processed as still images; animation is not preserved.
+- HEIC, HEIF, TIFF, and other specialist source formats depend on decoder support. A file extension alone does not guarantee compatibility.
+- Browser and desktop encoders can produce different file sizes and pixel results. This is not a color-managed print production workflow.
+- The project does not provide cloud storage, project sync, background uploads, or AI upscaling.
+- macOS packaging is configured for local builds. Locally generated packages are unsigned unless you supply your own signing configuration; Windows and Linux installers are not configured.
+
+## Develop locally
+
+Use **Node.js 22.12 or newer** and npm. Native dependencies are installed for the machine running the installation.
 
 ```bash
 git clone https://github.com/aneebji/img-rescaler.git
 cd img-rescaler
-npm install
+npm ci
+npm run dev:web
+```
+
+Open the local URL printed by Vite. To launch the desktop app instead:
+
+```bash
 npm run dev
 ```
 
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Local Electron app |
-| `npm run build` | Renderer bundle |
-| `npm run build:pages` | Copy the web app into `docs/` for GitHub Pages |
-| `npm run package:mac` | Unsigned `.dmg` / `.zip` via electron-builder |
+| Command               | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `npm run dev:web`     | Start the Vite browser development server.                    |
+| `npm run dev`         | Start Vite and launch Electron.                               |
+| `npm run check`       | Run source checks.                                            |
+| `npm test`            | Run automated tests.                                          |
+| `npm run test:e2e`    | Run Chromium workflow and image export tests with Playwright. |
+| `npm run build`       | Build the production renderer into `dist-renderer/`.          |
+| `npm run preview:web` | Preview the production renderer after building.               |
+| `npm run build:pages` | Generate the static GitHub Pages site in `docs/`.             |
+| `npm run package:mac` | Build local macOS `.dmg` and `.zip` artifacts in `release/`.  |
 
-## Architecture
+### Architecture
 
-| Layer | Role |
-| --- | --- |
-| **Web** | File API, canvas crop, JSZip download |
-| **Electron** | File dialogs, Sharp encode, Finder reveal |
-| **Vite renderer** | Crop UI, per-image / per-size state |
+The browser and desktop applications share the same renderer. A small API boundary selects browser file handling and Canvas processing, or Electron IPC and Sharp processing, depending on the runtime.
 
+```text
+src/                    Shared interface and browser adapter
+electron/               Desktop main process and preload bridge
+tests/                  Automated regression tests
+.github/                Contribution and issue templates
+contrib/                Optional GitHub Actions workflow
+docs/                   Generated GitHub Pages site
+media/                  Repository screenshots and presentation assets
+dist-renderer/          Local production build (ignored by Git)
+output/                 Default local desktop exports (ignored by Git)
+release/                Desktop package artifacts (ignored by Git)
 ```
-src/                 UI + browser I/O
-electron/            Desktop main process + preload
-output/              Dated export folders (gitignored)
-release/             Packaged Mac artifacts (gitignored)
+
+### Validation
+
+Before opening a pull request, run:
+
+```bash
+npm run check
+npm test
+npm run build
 ```
 
-## Output contract
+Browser tests also check automated accessibility rules for the editor and dialogs. A ready-to-enable GitHub Actions workflow is included in [`contrib/github-actions-checks.yml`](./contrib/github-actions-checks.yml). To enable it, copy the file to `.github/workflows/ci.yml` and commit with an account or token that has permission to write workflows. For UI or export changes, also walk through importing images, editing separate crops, exporting each format, and checking the downloaded files. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the review checklist.
 
-- Container: **PNG**
-- Geometry: exact target width × height
-- Naming: `{basename}_{width}x{height}.png`
-- Originals: `originals/<filename>` in the same ZIP / run folder
-- Isolation: one dated ZIP or folder per Rescale run
+To run the browser regression suite locally, install its browser once, then start the tests. Playwright starts the development server automatically:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+### Publish to the existing live URL
+
+GitHub Pages serves this repository's `main` branch from `/docs` at **[aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)**.
+
+```bash
+npm run build:pages
+```
+
+Commit the source changes and generated `docs/` output, then push to `main` through the normal review process. GitHub Pages deploys the updated site at the same URL. Relative asset paths are configured in `vite.config.mjs` for the repository subpath.
+
+## Contribute
+
+Bug fixes, accessibility improvements, new test coverage, and carefully scoped workflow improvements are welcome. Read the [contribution guide](./CONTRIBUTING.md), open an [issue](https://github.com/aneebji/img-rescaler/issues), or submit a pull request with the problem, change, and verification steps.
+
+Please report potential vulnerabilities using the guidance in [SECURITY.md](./SECURITY.md), without exposing sensitive details in a public issue.
 
 ## License
 
-[MIT](./LICENSE) © 2026 Aneeb
+[MIT](./LICENSE) © 2026 Aneeb. You may use, modify, and distribute the project, including commercially, under the license terms.
