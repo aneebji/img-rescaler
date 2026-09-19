@@ -1,9 +1,22 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const os = require("node:os");
+const crypto = require("node:crypto");
 const { pathToFileURL } = require("node:url");
 const sharp = require("sharp");
 const exportUtils = import("../src/export-utils.mjs");
+
+let psdDecodePromise;
+
+function loadPsdDecode() {
+  if (!psdDecodePromise) {
+    psdDecodePromise = import(
+      pathToFileURL(path.join(__dirname, "psd-decode.mjs")).href
+    );
+  }
+  return psdDecodePromise;
+}
 
 const IMAGE_FILTER_EXTENSIONS = [
   "jpg",
@@ -20,7 +33,39 @@ const IMAGE_FILTER_EXTENSIONS = [
   "svg",
   "heic",
   "heif",
+  "psd",
+  "psb",
 ];
+
+const psdRasterCache = new Map();
+
+async function resolveInput(filePath) {
+  const { isPsdFileName, decodePsdComposite } = await loadPsdDecode();
+  if (!isPsdFileName(filePath)) {
+    return filePath;
+  }
+
+  const cached = psdRasterCache.get(filePath);
+  if (cached) {
+    return cached;
+  }
+
+  const { width, height, rgba } = decodePsdComposite(
+    await fs.readFile(filePath)
+  );
+  const dest = path.join(
+    os.tmpdir(),
+    `image-rescaler-${crypto.createHash("sha1").update(filePath).digest("hex")}.png`
+  );
+  await sharp(Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength), {
+    raw: { width, height, channels: 4 },
+  })
+    .png({ compressionLevel: 1 })
+    .toFile(dest);
+
+  psdRasterCache.set(filePath, dest);
+  return dest;
+}
 
 function isDev() {
   return !app.isPackaged;
@@ -361,7 +406,8 @@ async function readImageInfos(filePaths) {
       }
 
       size = stat.size;
-      const metadata = await sharp(filePath).metadata();
+      const source = await resolveInput(filePath);
+      const metadata = await sharp(source).metadata();
       const { width, height } = orientedDimensions(metadata);
       if (!width || !height)
         throw new Error("Could not read image dimensions.");
@@ -392,7 +438,8 @@ async function readImageInfos(filePaths) {
 async function readImagePreview(filePath) {
   if (!validPath(filePath)) throw new Error("Choose a valid image file.");
   const { orientedDimensions } = await exportUtils;
-  const metadata = await sharp(filePath).metadata();
+  const source = await resolveInput(filePath);
+  const metadata = await sharp(source).metadata();
   const { width, height } = orientedDimensions(metadata);
 
   if (!width || !height) {
@@ -400,7 +447,7 @@ async function readImagePreview(filePath) {
   }
 
   const max = 1600;
-  let pipeline = sharp(filePath).rotate();
+  let pipeline = sharp(source).rotate();
 
   if (width > max || height > max) {
     pipeline = pipeline.resize(max, max, {
@@ -442,10 +489,11 @@ async function resizeOne({
     outputFileName(path.basename(inputPath), presetWidth, presetHeight, format),
   );
   const outputPath = await uniqueDestName(dest, name);
-  const metadata = await sharp(inputPath).metadata();
+  const source = await resolveInput(inputPath);
+  const metadata = await sharp(source).metadata();
   const { width, height } = orientedDimensions(metadata);
   const region = normalizeCrop(crop, width, height, presetWidth, presetHeight);
-  let pipeline = sharp(inputPath)
+  let pipeline = sharp(source)
     .rotate()
     .extract(region)
     .resize(presetWidth, presetHeight, {

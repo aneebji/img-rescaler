@@ -12,6 +12,7 @@ let portrait;
 let transparent;
 let duplicate;
 let corrupt;
+let photoshop;
 const handlers = new Map();
 let onReady;
 let openWindow;
@@ -80,6 +81,21 @@ before(async () => {
   transparent = path.join(temp, "photo.png");
   duplicate = path.join(temp, "photo.jpg");
   corrupt = path.join(temp, "corrupt.png");
+  photoshop = path.join(temp, "mosque.psd");
+  const plane = Buffer.alloc(192 * 128, 255);
+  const psd = Buffer.alloc(40 + plane.length * 4);
+  psd.write("8BPS", 0);
+  psd.writeUInt16BE(1, 4);
+  psd.writeUInt16BE(4, 12);
+  psd.writeUInt32BE(128, 14);
+  psd.writeUInt32BE(192, 18);
+  psd.writeUInt16BE(8, 22);
+  psd.writeUInt16BE(4, 24);
+  plane.copy(psd, 40);
+  plane.copy(psd, 40 + plane.length);
+  plane.copy(psd, 40 + plane.length * 2);
+  plane.copy(psd, 40 + plane.length * 3);
+  await fs.writeFile(photoshop, psd);
   await sharp({
     create: { width: 120, height: 80, channels: 3, background: "#ef4444" },
   })
@@ -244,6 +260,36 @@ test("desktop inspection and preview agree on oriented dimensions and preserve a
     Buffer.from(alphaPreview.dataUrl.split(",")[1], "base64"),
   ).metadata();
   assert.equal(metadata.hasAlpha, true);
+});
+
+test("desktop inspects and crops a CMYK Photoshop file", async () => {
+  const infos = await handlers.get("inspect-paths")(eventFor(), [photoshop]);
+  assert.deepEqual(
+    [infos[0].name, infos[0].width, infos[0].height, infos[0].error],
+    ["mosque.psd", 192, 128, undefined],
+  );
+  const preview = await handlers.get("get-image-preview")(
+    eventFor(),
+    photoshop,
+  );
+  assert.deepEqual([preview.width, preview.height], [192, 128]);
+  const output = path.join(temp, "psd-out");
+  await fs.mkdir(output, { recursive: true });
+  const result = await handlers.get("resize-images")(eventFor(), {
+    images: [{ path: photoshop, name: "mosque.psd" }],
+    resolutions: [{ width: 96, height: 64 }],
+    outputDir: output,
+    crops: {},
+    format: "png",
+    quality: 0.9,
+    includeOriginals: false,
+  });
+  assert.equal(result.results[0].error, null);
+  const exported = await sharp(result.results[0].outputPath).metadata();
+  assert.deepEqual(
+    [exported.width, exported.height, exported.format],
+    [96, 64, "png"],
+  );
 });
 
 for (const format of ["png", "jpeg", "webp"]) {

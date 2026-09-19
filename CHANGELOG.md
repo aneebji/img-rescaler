@@ -20,6 +20,7 @@
 
 - Prevented files with matching basenames from overwriting each other.
 - Fixed EXIF-rotated desktop image dimensions and transparent browser previews.
+- Added Photoshop PSD and PSB composite decode so CMYK files can be cropped and exported.
 - Added dimension limits, safer filenames, crop bounds, import errors, and preview retry handling.
 - Locked export settings during processing and prevented older asynchronous previews from replacing the current selection.
 - Added named dialogs, keyboard focus retention, live status announcements, and improved contrast.

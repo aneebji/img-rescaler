@@ -16,6 +16,45 @@ async function imageFile(
   return { name, mimeType: `image/${format}`, buffer };
 }
 
+function buildUncompressedPsd({ width, height, colorMode, planes }) {
+  const plane = width * height;
+  const buffer = Buffer.alloc(40 + plane * planes.length);
+  buffer.write("8BPS", 0);
+  buffer.writeUInt16BE(1, 4);
+  buffer.writeUInt16BE(planes.length, 12);
+  buffer.writeUInt32BE(height, 14);
+  buffer.writeUInt32BE(width, 18);
+  buffer.writeUInt16BE(8, 22);
+  buffer.writeUInt16BE(colorMode, 24);
+  buffer.writeUInt16BE(0, 38);
+  let offset = 40;
+  for (const data of planes) {
+    Buffer.from(data).copy(buffer, offset);
+    offset += plane;
+  }
+  return buffer;
+}
+
+function cmykPsdFile(
+  name = "mosque.psd",
+  width = 192,
+  height = 128,
+  stored = [0, 180, 220, 255],
+) {
+  const plane = width * height;
+  const planes = stored.map((value) => Buffer.alloc(plane, value));
+  return {
+    name,
+    mimeType: "image/vnd.adobe.photoshop",
+    buffer: buildUncompressedPsd({
+      width,
+      height,
+      colorMode: 4,
+      planes,
+    }),
+  };
+}
+
 async function transparentFile() {
   const tile = await sharp({
     create: { width: 80, height: 80, channels: 4, background: "#419a75" },
@@ -524,4 +563,35 @@ test("a failed new preview clears the previous image and retry restores the sele
   await expect(page.locator("#image-detail")).toContainText("retry-me.png");
   await expect(page.locator("#zoom-in")).toBeEnabled();
   await expect(page.locator("#reset-crop")).toBeEnabled();
+});
+
+test("CMYK Photoshop files open in the crop workspace and export", async ({
+  page,
+}) => {
+  await expect(page.locator(".file-types")).toContainText("PSD");
+  const original = cmykPsdFile();
+  await upload(page, [original]);
+  await expect(page.locator("#image-list strong")).toHaveText("mosque.psd");
+  await expect(page.locator("#image-list small")).toContainText("192 × 128");
+  await expect(page.locator("#crop-image")).toHaveAttribute(
+    "src",
+    /^data:image\/png/,
+  );
+  await expect(page.locator("#crop-viewport")).toBeVisible();
+  await page.locator("#crop-viewport").focus();
+  await page.keyboard.press("ArrowRight");
+  await page.locator('[data-format="png"]').click();
+  const files = await exportArchive(page);
+  const outputs = files.filter((file) => !file.name.includes("/originals/"));
+  expect(outputs.map((file) => file.name.split("/").pop()).sort()).toEqual([
+    "mosque_1080x1080.png",
+    "mosque_1080x1920.png",
+    "mosque_1920x1080.png",
+  ]);
+  for (const file of outputs) {
+    const exported = await sharp(await file.async("nodebuffer")).metadata();
+    expect(exported.format).toBe("png");
+    expect(exported.width).toBeGreaterThan(0);
+    expect(exported.height).toBeGreaterThan(0);
+  }
 });

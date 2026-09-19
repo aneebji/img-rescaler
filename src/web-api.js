@@ -7,8 +7,10 @@ import {
   uniqueName,
   validateResolutions,
 } from "./export-utils.mjs";
+import { decodePsdComposite, isPsdFileName } from "../electron/psd-decode.mjs";
 
 const filesById = new Map();
+const bitmapsById = new Map();
 const progressListeners = new Set();
 
 function pad2(value) {
@@ -34,6 +36,11 @@ function emitProgress(data) {
 }
 
 async function decodeBitmap(file) {
+  if (isPsdFileName(file.name)) {
+    const { width, height, rgba } = decodePsdComposite(await file.arrayBuffer());
+    return createImageBitmap(new ImageData(rgba, width, height));
+  }
+
   if (typeof createImageBitmap === "function") {
     try {
       return await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -57,6 +64,22 @@ async function decodeBitmap(file) {
   }
 }
 
+async function bitmapForId(id) {
+  const cached = bitmapsById.get(id);
+  if (cached) {
+    return cached;
+  }
+
+  const file = filesById.get(id);
+  if (!file) {
+    throw new Error("Image is no longer available. Add it again to export.");
+  }
+
+  const bitmap = await decodeBitmap(file);
+  bitmapsById.set(id, bitmap);
+  return bitmap;
+}
+
 function bitmapSize(bitmap) {
   return {
     width: bitmap.naturalWidth || bitmap.width || 0,
@@ -76,17 +99,13 @@ async function inspectFiles(fileList) {
     const name = file.name || "image";
 
     try {
-      const bitmap = await decodeBitmap(file);
+      filesById.set(id, file);
+      const bitmap = await bitmapForId(id);
       const { width, height } = bitmapSize(bitmap);
-      if (typeof bitmap.close === "function") {
-        bitmap.close();
-      }
 
       if (!width || !height) {
         throw new Error("Could not read image size");
       }
-
-      filesById.set(id, file);
       infos.push({
         id,
         path: id,
@@ -128,7 +147,7 @@ function openFilePicker() {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.accept = "image/*";
+    input.accept = "image/*,.psd,.psb";
     input.hidden = true;
     let settled = false;
     let focusTimer;
@@ -154,17 +173,9 @@ function openFilePicker() {
 }
 
 async function getImagePreview(id) {
-  const file = filesById.get(id);
-  if (!file) {
-    throw new Error("Image is no longer available");
-  }
-
-  const bitmap = await decodeBitmap(file);
+  const bitmap = await bitmapForId(id);
   const { width, height } = bitmapSize(bitmap);
   if (!width || !height) {
-    if (typeof bitmap.close === "function") {
-      bitmap.close();
-    }
     throw new Error("Could not read image size");
   }
 
@@ -186,7 +197,7 @@ async function getImagePreview(id) {
       throw new Error("Your browser could not create an image preview.");
     ctx.drawImage(bitmap, 0, 0, previewWidth, previewHeight);
   } finally {
-    if (typeof bitmap.close === "function") bitmap.close();
+    // Keep the decoded bitmap cached for export; do not close it here.
   }
 
   return {
@@ -198,8 +209,8 @@ async function getImagePreview(id) {
   };
 }
 
-async function cropToImage(file, crop, targetW, targetH, { format, quality }) {
-  const bitmap = await decodeBitmap(file);
+async function cropToImage(id, crop, targetW, targetH, { format, quality }) {
+  const bitmap = await bitmapForId(id);
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
@@ -251,8 +262,7 @@ async function cropToImage(file, crop, targetW, targetH, { format, quality }) {
       );
     });
   } finally {
-    if (typeof bitmap.close === "function") bitmap.close();
-    // Release large canvas backing stores between sequential export jobs.
+    // Keep the cached bitmap for other sizes; releaseImage closes it.
     canvas.width = 0;
     canvas.height = 0;
   }
@@ -324,7 +334,7 @@ async function resizeImages(payload = {}) {
         );
       const crop = crops?.[imageKey]?.[key] || crops?.[image.path]?.[key];
       const blob = await cropToImage(
-        file,
+        imageKey,
         crop,
         presetWidth,
         presetHeight,
@@ -420,6 +430,11 @@ export function installWebApi() {
     resizeImages,
     getPathForFile: () => "",
     releaseImage: (id) => {
+      const bitmap = bitmapsById.get(id);
+      if (bitmap && typeof bitmap.close === "function") {
+        bitmap.close();
+      }
+      bitmapsById.delete(id);
       filesById.delete(id);
     },
     onResizeProgress: (callback) => {

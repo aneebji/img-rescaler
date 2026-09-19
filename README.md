@@ -46,7 +46,7 @@ Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, with
 
 ## From source to export
 
-1. **Add your images.** Use the file picker or drag files into the workspace. Try the sample for a quick walkthrough.
+1. **Add your images.** Use the file picker or drag files into the workspace, including Photoshop **PSD/PSB** (CMYK or RGB). Try the sample for a quick walkthrough.
 2. **Choose your output sizes.** Add presets or custom dimensions. Multiple sizes produce multiple exports per image.
 3. **Compose each crop.** Select an image and a size, then move or zoom the crop. Check the output preview before continuing.
 4. **Set your export options.** Choose PNG, JPEG, or WebP, adjust quality where applicable, and decide whether to include originals.
