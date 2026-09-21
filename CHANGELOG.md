@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Clarified public search metadata, structured data, and crawler files so Image Rescaler is easier to find as a free image resizer.
+
 ## 3.0.0 — 2026-09-19
 
 ### Photoshop files in the crop workspace

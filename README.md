@@ -2,10 +2,10 @@
 
 # Image Rescaler
 
-### One image. Every size. Your composition.
+### Free online image resizer. One image. Every size. Your composition.
 
-A focused image workspace for preparing product photos, social assets, and web images.\
-Set your sizes, refine each crop, and export the entire batch in one go.
+A private image resizer and crop workspace for product photos, social assets, and web images.\
+Set your sizes, refine each crop, and batch-export PNG, JPEG, or WebP — in the [browser app](https://aneebji.github.io/img-rescaler/), with no uploads.
 
 [![Open workspace](https://img.shields.io/badge/Open_workspace-Live_app-3e583b?style=flat-square)](https://aneebji.github.io/img-rescaler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-222222?style=flat-square)](./LICENSE)
@@ -33,16 +33,16 @@ Different destinations need different compositions. A product thumbnail, a portr
 
 Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, without an account, or run the Electron desktop app locally.
 
-| Capability                 | What it does                                                                                                                  |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Batch processing**       | Add multiple images and generate every image × selected size combination.                                                     |
-| **Visual crop control**    | Frame each composition with drag, zoom, and a live output preview. Each image and size keeps its own crop during the session. |
-| **Useful size presets**    | Start with Social, Commerce, Web, or the original sizes, or enter custom pixel dimensions.                                    |
-| **PNG, JPEG, WebP, and PSD** | Import photos and Photoshop **PSD/PSB** files, then export PNG, JPEG, or WebP with adjustable quality.                      |
-| **Organized delivery**     | Download a ZIP in the browser or save to a local run folder on desktop. Include source originals when needed.                 |
-| **A considered interface** | Responsive layout, light and dark themes, and keyboard and touch crop controls.                                               |
-| **Try before importing**   | Explore the browser workspace with the built-in sample image.                                                                 |
-| **Local image processing** | Images are decoded, cropped, and encoded on your device. No image upload service or account is required.                      |
+| Capability                   | What it does                                                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Batch processing**         | Add multiple images and generate every image × selected size combination.                                                     |
+| **Visual crop control**      | Frame each composition with drag, zoom, and a live output preview. Each image and size keeps its own crop during the session. |
+| **Useful size presets**      | Start with Social, Commerce, Web, or the original sizes, or enter custom pixel dimensions.                                    |
+| **PNG, JPEG, WebP, and PSD** | Import photos and Photoshop **PSD/PSB** files, then export PNG, JPEG, or WebP with adjustable quality.                        |
+| **Organized delivery**       | Download a ZIP in the browser or save to a local run folder on desktop. Include source originals when needed.                 |
+| **A considered interface**   | Responsive layout, light and dark themes, and keyboard and touch crop controls.                                               |
+| **Try before importing**     | Explore the browser workspace with the built-in sample image.                                                                 |
+| **Local image processing**   | Images are decoded, cropped, and encoded on your device. No image upload service or account is required.                      |
 
 ## From source to export
 
@@ -54,13 +54,13 @@ Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, with
 
 ### Supported formats
 
-| Format        | Role    | Notes                                                                                          |
-| ------------- | ------- | ---------------------------------------------------------------------------------------------- |
-| **PSD / PSB** | Import  | Reads the merged Photoshop composite, including CMYK and RGB 8-bit files. Layers are not kept. |
-| **PNG**       | Export  | Graphics, transparent assets, and lossless output. Quality control does not apply.             |
-| **JPEG**      | Export  | Photos and widely compatible delivery. Transparent pixels flatten onto white.                  |
-| **WebP**      | Export  | Web images with transparency or lossy compression. Browser encoder availability may vary.      |
-| **JPG, AVIF, SVG & more** | Import | Other rasters and vectors depend on the browser or Sharp decoder.                    |
+| Format                    | Role   | Notes                                                                                          |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| **PSD / PSB**             | Import | Reads the merged Photoshop composite, including CMYK and RGB 8-bit files. Layers are not kept. |
+| **PNG**                   | Export | Graphics, transparent assets, and lossless output. Quality control does not apply.             |
+| **JPEG**                  | Export | Photos and widely compatible delivery. Transparent pixels flatten onto white.                  |
+| **WebP**                  | Export | Web images with transparency or lossy compression. Browser encoder availability may vary.      |
+| **JPG, AVIF, SVG & more** | Import | Other rasters and vectors depend on the browser or Sharp decoder.                              |
 
 The app performs conventional image resizing. Enlarging a small source does not recover detail that was absent from the original.
 
@@ -91,13 +91,13 @@ Image files and crop edits are session data, not a saved project. Export your wo
 
 ## Browser and desktop
 
-|                    | Browser                                                                         | Desktop                                              |
-| ------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)                    | Run locally from source                              |
-| **Processing**     | Browser image decoding and Canvas                                               | Sharp in Electron's main process                     |
-| **Delivery**       | ZIP download                                                                    | Dated local output folder                            |
-| **Source formats** | Browser-decoded images plus Photoshop **PSD/PSB** (CMYK or RGB composite) | Sharp plus the same **PSD/PSB** composite decode |
-| **Packaging**      | Static site hosted on GitHub Pages                                              | macOS `.dmg` and `.zip` build configuration included |
+|                    | Browser                                                                   | Desktop                                              |
+| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)              | Run locally from source                              |
+| **Processing**     | Browser image decoding and Canvas                                         | Sharp in Electron's main process                     |
+| **Delivery**       | ZIP download                                                              | Dated local output folder                            |
+| **Source formats** | Browser-decoded images plus Photoshop **PSD/PSB** (CMYK or RGB composite) | Sharp plus the same **PSD/PSB** composite decode     |
+| **Packaging**      | Static site hosted on GitHub Pages                                        | macOS `.dmg` and `.zip` build configuration included |
 
 ### Current limits
 

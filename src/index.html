@@ -9,27 +9,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Resize once. Ready everywhere. A free, private image workspace for precise crops, batch resizing, and PNG, JPEG, or WebP exports. No uploads, no sign-up."
+      content="Free Image Rescaler — resize, crop, and batch-export images in your browser. Exact PNG, JPEG, or WebP sizes. No uploads, no sign-up, 100% on-device."
     />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1"
+    />
+    <meta name="author" content="Aneeb" />
+    <meta name="application-name" content="Image Rescaler" />
+    <meta name="apple-mobile-web-app-title" content="Image Rescaler" />
     <meta name="theme-color" content="#f6f7f4" />
     <meta
       property="og:title"
-      content="Image Rescaler — Every image. A perfect fit."
+      content="Image Rescaler — Free online image resizer"
     />
     <meta
       property="og:description"
-      content="Your private image workspace. Precise crops, multiple sizes, one effortless export. Free and open source."
+      content="Crop and batch-resize photos to exact sizes. Export PNG, JPEG, or WebP privately in your browser."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Image Rescaler" />
     <meta property="og:url" content="https://aneebji.github.io/img-rescaler/" />
     <meta
       property="og:image"
       content="https://aneebji.github.io/img-rescaler/social-card.png"
     />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Image Rescaler workspace for cropping and resizing photos"
+    />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Image Rescaler — Free online image resizer"
+    />
+    <meta
+      name="twitter:description"
+      content="Crop and batch-resize photos to exact sizes. Export PNG, JPEG, or WebP privately in your browser."
+    />
+    <meta
+      name="twitter:image"
+      content="https://aneebji.github.io/img-rescaler/social-card.png"
+    />
     <link rel="canonical" href="https://aneebji.github.io/img-rescaler/" />
+    <link
+      rel="sitemap"
+      type="application/xml"
+      href="https://aneebji.github.io/img-rescaler/sitemap.xml"
+    />
+    <link
+      rel="alternate"
+      type="text/plain"
+      title="LLM instructions"
+      href="https://aneebji.github.io/img-rescaler/llms.txt"
+    />
+    <link rel="manifest" href="./site.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>Image Rescaler — Your private image workspace</title>
+    <title>Image Rescaler — Free online image resizer and crop tool</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://aneebji.github.io/img-rescaler/#app",
+            "name": "Image Rescaler",
+            "alternateName": [
+              "image rescaler",
+              "image resizer",
+              "online image resizer"
+            ],
+            "url": "https://aneebji.github.io/img-rescaler/",
+            "description": "Free private image resizer and crop workspace. Batch-resize photos to exact pixel sizes and export PNG, JPEG, or WebP on your device.",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Image editor",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "image": "https://aneebji.github.io/img-rescaler/social-card.png",
+            "screenshot": "https://aneebji.github.io/img-rescaler/social-card.png",
+            "author": { "@type": "Person", "name": "Aneeb" },
+            "license": "https://github.com/aneebji/img-rescaler/blob/main/LICENSE",
+            "featureList": [
+              "Resize and rescale images to exact pixel sizes",
+              "Batch image resizing",
+              "Per-size crop control",
+              "PNG, JPEG, and WebP export",
+              "Photoshop PSD and PSB import",
+              "On-device processing with no uploads"
+            ],
+            "keywords": "image rescaler, image resizer, resize images, batch resize, crop images, PNG, JPEG, WebP"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://aneebji.github.io/img-rescaler/#website",
+            "name": "Image Rescaler",
+            "url": "https://aneebji.github.io/img-rescaler/",
+            "description": "Free online image resizer and crop workspace.",
+            "inLanguage": "en",
+            "publisher": { "@type": "Person", "name": "Aneeb" }
+          },
+          {
+            "@type": "SoftwareSourceCode",
+            "name": "Image Rescaler",
+            "codeRepository": "https://github.com/aneebji/img-rescaler",
+            "url": "https://github.com/aneebji/img-rescaler",
+            "license": "https://opensource.org/licenses/MIT",
+            "programmingLanguage": "JavaScript",
+            "targetProduct": {
+              "@id": "https://aneebji.github.io/img-rescaler/#app"
+            }
+          }
+        ]
+      }
+    </script>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -116,11 +217,11 @@
         <main id="workspace" class="workspace">
           <div class="workspace-heading">
             <div>
-              <div class="eyebrow">SMALL DETAILS. BIG DIFFERENCE.</div>
-              <h1>Every image. <span>A perfect fit.</span></h1>
+              <div class="eyebrow">IMAGE RESCALER · ON YOUR DEVICE</div>
+              <h1>Resize images. <span>A perfect fit.</span></h1>
               <p>
-                One image or a whole collection. Make every size look
-                intentional.
+                Crop and batch-resize photos in your browser. Export PNG, JPEG,
+                or WebP at exact sizes — nothing gets uploaded.
               </p>
             </div>
             <button id="add-images" class="button button-dark" type="button">
@@ -582,7 +683,7 @@
       <div class="modal-heading">
         <div>
           <span class="eyebrow">A FEW LITTLE POINTERS</span>
-          <h2 id="guide-title">Great images. Less effort.</h2>
+          <h2 id="guide-title">Resize images. Less effort.</h2>
         </div>
         <button
           class="icon-button"

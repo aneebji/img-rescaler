@@ -1,0 +1,21 @@
+{
+  "name": "Image Rescaler",
+  "short_name": "Rescaler",
+  "description": "Free private image resizer and crop workspace. Batch-resize photos and export PNG, JPEG, or WebP on your device.",
+  "id": "https://aneebji.github.io/img-rescaler/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f4",
+  "theme_color": "#f6f7f4",
+  "lang": "en",
+  "categories": ["photo", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

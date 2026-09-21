@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aneebji.github.io/img-rescaler/sitemap.xml
