@@ -1,7 +1,7 @@
 {
   "name": "image-rescaler",
   "productName": "Image Rescaler",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Image Rescaler — a free private image resizer and crop workspace for batch resizing, precise crops, Photoshop PSD imports, and PNG, JPEG, and WebP exports.",
   "keywords": [
     "image rescaler",

@@ -18,6 +18,12 @@ npmRebuild: true
 mac:
   icon: build/icon.icns
   category: public.app-category.photography
+  identity: "-"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
   target:
     - target: dmg
       arch:

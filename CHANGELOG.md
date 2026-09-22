@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.1 — 2026-09-22
+
+### macOS signing
+
+- Ad-hoc signed the macOS app so Gatekeeper no longer treats the download as damaged and asks to move it to the Bin.
+
 ## 3.1.0 — 2026-09-22
 
 ### Desktop downloads

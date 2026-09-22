@@ -10,9 +10,9 @@ Set your sizes, refine each crop, and batch-export PNG, JPEG, or WebP — in the
 [![Open workspace](https://img.shields.io/badge/Open_workspace-Live_app-3e583b?style=flat-square)](https://aneebji.github.io/img-rescaler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-222222?style=flat-square)](./LICENSE)
 [![Processing](https://img.shields.io/badge/Image_processing-On_your_device-167b52?style=flat-square)](#privacy)
-[![Version](https://img.shields.io/badge/Version-3.1.0-3e583b?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-3.1.1-3e583b?style=flat-square)](./CHANGELOG.md)
 
-[**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [macOS download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.0-mac-arm64.dmg) · [Windows download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.0-win-x64.exe) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
+[**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [macOS download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.1-mac-arm64.dmg) · [Windows download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.1-win-x64.exe) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
 
 </div>
 
@@ -108,7 +108,7 @@ Image files and crop edits are session data, not a saved project. Export your wo
 - HEIC, HEIF, TIFF, and other specialist source formats depend on decoder support. A file extension alone does not guarantee compatibility.
 - Browser and desktop encoders can produce different file sizes and pixel results. This is not a color-managed print production workflow.
 - The project does not provide cloud storage, project sync, background uploads, or AI upscaling.
-- Published desktop packages are unsigned. On macOS, open the app from the Finder context menu the first time. On Windows, SmartScreen may warn that the publisher is unknown. Linux installers are not published. Intel Macs are not included in the Apple Silicon package.
+- The macOS download is ad-hoc signed, so it is no longer reported as damaged. macOS can still ask you to allow it once in System Settings → Privacy & Security, because the app is not notarized with an Apple Developer ID. On Windows, SmartScreen may warn that the publisher is unknown. Linux installers are not published. Intel Macs are not included in the Apple Silicon package.
 
 ## Develop locally
 
@@ -186,14 +186,14 @@ npm run build:pages
 
 Commit the source changes, README updates, and generated `docs/` output, then push to `main`. GitHub Pages deploys the updated site at the same URL. Relative asset paths are configured in `vite.config.mjs` for the repository subpath.
 
-Desktop installers are not stored in the repository. Tag a version (`v3.1.0`) and push the tag. The release workflow builds macOS and Windows packages and attaches them to that GitHub release. Download links in this README should match those asset names.
+Desktop installers are not stored in the repository. Tag a version (`v3.1.1`) and push the tag. The release workflow builds macOS and Windows packages and attaches them to that GitHub release. Download links in this README should match those asset names.
 
 | Platform                  | File                                                                                                                                      |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon       | [Image-Rescaler-3.1.0-mac-arm64.dmg](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-mac-arm64.dmg) |
-| macOS Apple Silicon (zip) | [Image-Rescaler-3.1.0-mac-arm64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-mac-arm64.zip) |
-| Windows 64-bit installer  | [Image-Rescaler-3.1.0-win-x64.exe](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-win-x64.exe)     |
-| Windows 64-bit (zip)      | [Image-Rescaler-3.1.0-win-x64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-win-x64.zip)     |
+| macOS Apple Silicon       | [Image-Rescaler-3.1.1-mac-arm64.dmg](https://github.com/aneebji/img-rescaler/releases/download/v3.1.1/Image-Rescaler-3.1.1-mac-arm64.dmg) |
+| macOS Apple Silicon (zip) | [Image-Rescaler-3.1.1-mac-arm64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.1/Image-Rescaler-3.1.1-mac-arm64.zip) |
+| Windows 64-bit installer  | [Image-Rescaler-3.1.1-win-x64.exe](https://github.com/aneebji/img-rescaler/releases/download/v3.1.1/Image-Rescaler-3.1.1-win-x64.exe)     |
+| Windows 64-bit (zip)      | [Image-Rescaler-3.1.1-win-x64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.1/Image-Rescaler-3.1.1-win-x64.zip)     |
 
 ## Contribute
 

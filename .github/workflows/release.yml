@@ -86,7 +86,7 @@ jobs:
             echo "- macOS Apple Silicon: \`.dmg\` and \`.zip\`"
             echo "- Windows 64-bit: installer \`.exe\` and \`.zip\`"
             echo
-            echo "These packages are unsigned. On macOS, open the app from the Finder context menu the first time. Windows SmartScreen may warn that the publisher is unknown."
+            echo "The macOS app is ad-hoc signed so Gatekeeper does not report it as damaged. On first launch, allow it in System Settings → Privacy & Security. Windows SmartScreen may warn that the publisher is unknown."
             echo
             echo "Images stay on your device. See the [changelog](https://github.com/aneebji/img-rescaler/blob/main/CHANGELOG.md) for what changed."
           } > release-notes.md
