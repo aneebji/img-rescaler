@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import {
+  fitExport,
   normalizeCrop,
   normalizeExportOptions,
   outputFileName,
@@ -37,7 +38,9 @@ function emitProgress(data) {
 
 async function decodeBitmap(file) {
   if (isPsdFileName(file.name)) {
-    const { width, height, rgba } = decodePsdComposite(await file.arrayBuffer());
+    const { width, height, rgba } = decodePsdComposite(
+      await file.arrayBuffer(),
+    );
     return createImageBitmap(new ImageData(rgba, width, height));
   }
 
@@ -209,63 +212,88 @@ async function getImagePreview(id) {
   };
 }
 
-async function cropToImage(id, crop, targetW, targetH, { format, quality }) {
-  const bitmap = await bitmapForId(id);
-  const canvas = document.createElement("canvas");
-  canvas.width = targetW;
-  canvas.height = targetH;
-  try {
-    const { width, height } = bitmapSize(bitmap);
-    const region = normalizeCrop(crop, width, height, targetW, targetH);
-    const ctx = canvas.getContext("2d");
-    if (!ctx)
-      throw new Error("Your browser could not create an export canvas.");
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    if (format === "jpeg") {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, targetW, targetH);
-    }
-    ctx.drawImage(
-      bitmap,
-      region.left,
-      region.top,
-      region.width,
-      region.height,
-      0,
-      0,
-      targetW,
-      targetH,
+function blobFromCanvas(canvas, format, encoderQuality) {
+  const mime = `image/${format}`;
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(
+            new Error(
+              `Could not encode ${format.toUpperCase()}. Try a smaller output size.`,
+            ),
+          );
+        } else if (blob.type !== mime) {
+          reject(
+            new Error(
+              `This browser cannot export ${format.toUpperCase()}. Choose PNG or JPEG.`,
+            ),
+          );
+        } else {
+          resolve(blob);
+        }
+      },
+      mime,
+      encoderQuality == null ? undefined : encoderQuality / 100,
     );
-    const mime = `image/${format}`;
-    return await new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(
-              new Error(
-                `Could not encode ${format.toUpperCase()}. Try a smaller output size.`,
-              ),
-            );
-          } else if (blob.type !== mime) {
-            reject(
-              new Error(
-                `This browser cannot export ${format.toUpperCase()}. Choose PNG or JPEG.`,
-              ),
-            );
-          } else {
-            resolve(blob);
-          }
-        },
-        mime,
-        quality,
+  });
+}
+
+async function cropToImage(
+  id,
+  crop,
+  targetW,
+  targetH,
+  { format, quality, maxBytes },
+) {
+  const bitmap = await bitmapForId(id);
+  const { width, height } = bitmapSize(bitmap);
+  const region = normalizeCrop(crop, width, height, targetW, targetH);
+  const encode = async (outputWidth, outputHeight, encoderQuality) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+    try {
+      const ctx = canvas.getContext("2d");
+      if (!ctx)
+        throw new Error("Your browser could not create an export canvas.");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      if (format === "jpeg") {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, outputWidth, outputHeight);
+      }
+      ctx.drawImage(
+        bitmap,
+        region.left,
+        region.top,
+        region.width,
+        region.height,
+        0,
+        0,
+        outputWidth,
+        outputHeight,
       );
-    });
-  } finally {
-    // Keep the cached bitmap for other sizes; releaseImage closes it.
-    canvas.width = 0;
-    canvas.height = 0;
-  }
+      const blob = await blobFromCanvas(canvas, format, encoderQuality);
+      return { byteLength: blob.size, payload: blob };
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
+  };
+  const fitted = await fitExport({
+    width: targetW,
+    height: targetH,
+    format,
+    quality,
+    maxBytes,
+    encode,
+  });
+  return {
+    blob: fitted.payload,
+    width: fitted.width,
+    height: fitted.height,
+  };
 }
 
 async function resizeImages(payload = {}) {
@@ -333,7 +361,7 @@ async function resizeImages(payload = {}) {
           "Image is no longer available. Add it again to export.",
         );
       const crop = crops?.[imageKey]?.[key] || crops?.[image.path]?.[key];
-      const blob = await cropToImage(
+      const exported = await cropToImage(
         imageKey,
         crop,
         presetWidth,
@@ -344,22 +372,22 @@ async function resizeImages(payload = {}) {
         usedOutputs,
         outputFileName(
           image.name || file.name,
-          presetWidth,
-          presetHeight,
+          exported.width,
+          exported.height,
           options.format,
         ),
       );
       const outputPath = `${folder}/${outputName}`;
-      zip.file(outputPath, blob);
+      zip.file(outputPath, exported.blob);
       results.push({
         source: image.name,
         presetWidth,
         presetHeight,
         outputPath,
-        width: presetWidth,
-        height: presetHeight,
+        width: exported.width,
+        height: exported.height,
         format: options.format,
-        size: blob.size,
+        size: exported.blob.size,
         error: null,
       });
     } catch (error) {

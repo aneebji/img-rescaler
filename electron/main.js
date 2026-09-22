@@ -51,11 +51,11 @@ async function resolveInput(filePath) {
   }
 
   const { width, height, rgba } = decodePsdComposite(
-    await fs.readFile(filePath)
+    await fs.readFile(filePath),
   );
   const dest = path.join(
     os.tmpdir(),
-    `image-rescaler-${crypto.createHash("sha1").update(filePath).digest("hex")}.png`
+    `image-rescaler-${crypto.createHash("sha1").update(filePath).digest("hex")}.png`,
   );
   await sharp(Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength), {
     raw: { width, height, channels: 4 },
@@ -481,45 +481,91 @@ async function resizeOne({
   usedOutputs,
   format,
   quality,
+  maxBytes,
 }) {
-  const { normalizeCrop, orientedDimensions, outputFileName, uniqueName } =
-    await exportUtils;
-  const name = uniqueName(
-    usedOutputs,
-    outputFileName(path.basename(inputPath), presetWidth, presetHeight, format),
-  );
-  const outputPath = await uniqueDestName(dest, name);
+  const {
+    fitExport,
+    normalizeCrop,
+    orientedDimensions,
+    outputFileName,
+    uniqueName,
+  } = await exportUtils;
   const source = await resolveInput(inputPath);
   const metadata = await sharp(source).metadata();
   const { width, height } = orientedDimensions(metadata);
   const region = normalizeCrop(crop, width, height, presetWidth, presetHeight);
-  let pipeline = sharp(source)
+  const raw = await sharp(source)
     .rotate()
     .extract(region)
     .resize(presetWidth, presetHeight, {
       fit: "fill",
       kernel: sharp.kernel.lanczos3,
+    })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const encode = async (targetWidth, targetHeight, encoderQuality) => {
+    let pipeline = sharp(raw.data, {
+      raw: {
+        width: raw.info.width,
+        height: raw.info.height,
+        channels: raw.info.channels,
+      },
     });
-  const encoderQuality = Math.max(1, Math.round(quality * 100));
-  if (format === "jpeg") {
-    pipeline = pipeline
-      .flatten({ background: "#ffffff" })
-      .jpeg({ quality: encoderQuality, mozjpeg: true });
-  } else if (format === "webp") {
-    pipeline = pipeline.webp({ quality: encoderQuality, effort: 5 });
-  } else {
-    pipeline = pipeline.png({ compressionLevel: 9 });
-  }
-  const info = await pipeline.toFile(outputPath);
+    if (targetWidth !== raw.info.width || targetHeight !== raw.info.height) {
+      pipeline = pipeline.resize(targetWidth, targetHeight, {
+        fit: "fill",
+        kernel: sharp.kernel.lanczos3,
+      });
+    }
+    if (format === "jpeg") {
+      pipeline = pipeline.flatten({ background: "#ffffff" }).jpeg({
+        quality: encoderQuality,
+        mozjpeg: true,
+      });
+    } else if (format === "webp") {
+      pipeline = pipeline.webp({ quality: encoderQuality, effort: 5 });
+    } else if (encoderQuality == null) {
+      pipeline = pipeline.png({ compressionLevel: 9 });
+    } else {
+      pipeline = pipeline.png({
+        compressionLevel: 9,
+        palette: true,
+        quality: encoderQuality,
+        effort: 7,
+      });
+    }
+    const data = await pipeline.toBuffer();
+    return { byteLength: data.length, payload: data };
+  };
+  const fitted = await fitExport({
+    width: presetWidth,
+    height: presetHeight,
+    format,
+    quality,
+    maxBytes,
+    encode,
+    allowPalette: format === "png",
+  });
+  const name = uniqueName(
+    usedOutputs,
+    outputFileName(
+      path.basename(inputPath),
+      fitted.width,
+      fitted.height,
+      format,
+    ),
+  );
+  const outputPath = await uniqueDestName(dest, name);
+  await fs.writeFile(outputPath, fitted.payload);
   return {
     source: inputPath,
     presetWidth,
     presetHeight,
     outputPath,
-    width: info.width,
-    height: info.height,
+    width: fitted.width,
+    height: fitted.height,
     format,
-    size: info.size,
+    size: fitted.byteLength,
     error: null,
   };
 }

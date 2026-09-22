@@ -332,6 +332,10 @@ test("theme and export settings survive reload while imported images stay sessio
   await page.locator('[data-format="webp"]').click();
   await page.locator("#quality-range").fill("75");
   await page.locator("#include-originals").uncheck();
+  await page.locator("#size-limit").uncheck();
+  await expect(page.locator("#size-limit-hint")).toHaveText(
+    "Original export, with no file-size cap.",
+  );
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("#theme-toggle")).toHaveAccessibleName(
@@ -343,6 +347,10 @@ test("theme and export settings survive reload while imported images stay sessio
   );
   await expect(page.locator("#quality-range")).toHaveValue("75");
   await expect(page.locator("#include-originals")).not.toBeChecked();
+  await expect(page.locator("#size-limit")).not.toBeChecked();
+  await expect(page.locator("#size-limit-hint")).toHaveText(
+    "Original export, with no file-size cap.",
+  );
   await expect(page.locator(".size-row")).toHaveCount(1);
   await expect(
     page.getByRole("button", { name: "Preview 120 by 90", exact: true }),

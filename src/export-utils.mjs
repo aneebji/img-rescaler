@@ -1,5 +1,146 @@
 export const MAX_OUTPUT_SIDE = 8192;
 export const MAX_OUTPUT_PIXELS = 32_000_000;
+export const MAX_EXPORT_BYTES = 2 * 1024 * 1024;
+
+function readByteLength(encoded) {
+  if (
+    !encoded ||
+    !Number.isFinite(encoded.byteLength) ||
+    encoded.byteLength < 0
+  ) {
+    throw new Error("Encoder did not report a file size.");
+  }
+  return encoded.byteLength;
+}
+
+export async function largestWithinByteLimit(
+  encode,
+  min,
+  max,
+  maxBytes = MAX_EXPORT_BYTES,
+) {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max < min) {
+    throw new Error("Export fit range is invalid.");
+  }
+  const atMax = await encode(max);
+  if (readByteLength(atMax) <= maxBytes) return { value: max, ...atMax };
+  if (min === max) return null;
+
+  const atMin = await encode(min);
+  if (readByteLength(atMin) > maxBytes) return null;
+
+  const integer = Number.isInteger(min) && Number.isInteger(max);
+  let low = min;
+  let high = integer ? max - 1 : max;
+  let best = { value: min, ...atMin };
+
+  for (let step = 0; step < 8; step += 1) {
+    if (integer ? high <= low : high - low < 0.015) break;
+    const mid = integer ? Math.ceil((low + high) / 2) : (low + high) / 2;
+    if (mid <= low || mid > high) break;
+    const candidate = await encode(mid);
+    if (readByteLength(candidate) <= maxBytes) {
+      best = { value: mid, ...candidate };
+      low = mid;
+    } else if (integer) {
+      high = mid - 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return best;
+}
+
+export function scaledDimensions(width, height, scale) {
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+export async function fitExport({
+  width,
+  height,
+  format,
+  quality = 0.9,
+  encode,
+  allowPalette = false,
+  maxBytes = MAX_EXPORT_BYTES,
+}) {
+  const lossy = format === "jpeg" || format === "webp";
+  const requested = Math.max(1, Math.min(100, Math.round(quality * 100)));
+  if (maxBytes == null) {
+    const encoded = await encode(width, height, lossy ? requested : null);
+    return { ...encoded, width, height };
+  }
+
+  const atSize = async (targetWidth, targetHeight) => {
+    if (!lossy) {
+      const lossless = await encode(targetWidth, targetHeight, null);
+      if (readByteLength(lossless) <= maxBytes) {
+        return { ...lossless, width: targetWidth, height: targetHeight };
+      }
+      if (allowPalette) {
+        const paletted = await largestWithinByteLimit(
+          (level) => encode(targetWidth, targetHeight, level),
+          1,
+          100,
+          maxBytes,
+        );
+        if (paletted) {
+          return { ...paletted, width: targetWidth, height: targetHeight };
+        }
+      }
+      return { ...lossless, width: targetWidth, height: targetHeight };
+    }
+
+    const fitted = await largestWithinByteLimit(
+      (level) => encode(targetWidth, targetHeight, level),
+      1,
+      requested,
+      maxBytes,
+    );
+    if (fitted) return { ...fitted, width: targetWidth, height: targetHeight };
+    const smallest = await encode(targetWidth, targetHeight, 1);
+    return { ...smallest, width: targetWidth, height: targetHeight };
+  };
+
+  const full = await atSize(width, height);
+  if (readByteLength(full) <= maxBytes) return full;
+  if (width <= 1 && height <= 1) {
+    throw new Error("Could not export this image under 2 MB.");
+  }
+
+  const minScale = 1 / Math.max(width, height);
+  const highScale = Math.min(
+    width > 1 ? (width - 1) / width : 1,
+    height > 1 ? (height - 1) / height : 1,
+  );
+  const tightSetting = lossy || allowPalette ? 1 : null;
+  const scaled = await largestWithinByteLimit(
+    async (scale) => {
+      const size = scaledDimensions(width, height, scale);
+      const encoded = await encode(size.width, size.height, tightSetting);
+      return {
+        byteLength: encoded.byteLength,
+        payload: encoded.payload,
+        width: size.width,
+        height: size.height,
+      };
+    },
+    minScale,
+    Math.max(minScale, highScale),
+    maxBytes,
+  );
+  if (!scaled || readByteLength(scaled) > maxBytes) {
+    throw new Error("Could not export this image under 2 MB.");
+  }
+
+  const polished = await atSize(scaled.width, scaled.height);
+  if (readByteLength(polished) <= maxBytes) return polished;
+  return scaled;
+}
 
 export function normalizeExportOptions(options = {}) {
   const format = options.format ?? "png";
@@ -21,10 +162,21 @@ export function normalizeExportOptions(options = {}) {
   ) {
     throw new Error("Include originals must be true or false.");
   }
+  let maxBytes = MAX_EXPORT_BYTES;
+  if (options.maxBytes === null || options.maxBytes === false) {
+    maxBytes = null;
+  } else if (
+    options.maxBytes != null &&
+    options.maxBytes !== true &&
+    options.maxBytes !== MAX_EXPORT_BYTES
+  ) {
+    throw new Error("Size limit must be the 2 MB preset or original.");
+  }
   return {
     format,
     quality,
     includeOriginals: options.includeOriginals ?? true,
+    maxBytes,
   };
 }
 

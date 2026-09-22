@@ -1,6 +1,6 @@
 import { installWebApi } from "./web-api.js";
 import { icon, hydrateIcons } from "./icons.js";
-import { validateResolutions } from "./export-utils.mjs";
+import { MAX_EXPORT_BYTES, validateResolutions } from "./export-utils.mjs";
 
 installWebApi();
 hydrateIcons();
@@ -57,6 +57,7 @@ const state = {
     ? Math.max(0.1, Math.min(1, saved.quality))
     : 0.9,
   includeOriginals: saved.includeOriginals !== false,
+  limitFileSize: saved.limitFileSize !== false,
   theme: saved.theme === "dark" ? "dark" : "light",
   showGrid: true,
   previewReady: false,
@@ -117,6 +118,7 @@ function saveSettings() {
         format: state.format,
         quality: state.quality,
         includeOriginals: state.includeOriginals,
+        limitFileSize: state.limitFileSize,
         theme: state.theme,
       }),
     );
@@ -479,6 +481,7 @@ function updateActions() {
     "#format-options button",
     "#quality-range",
     "#include-originals",
+    "#size-limit",
     "#choose-output",
     ".size-select",
     ".size-remove",
@@ -522,6 +525,10 @@ function renderFormat() {
   $("quality-range").value = Math.round(state.quality * 100);
   $("quality-value").value = `${Math.round(state.quality * 100)}%`;
   $("include-originals").checked = state.includeOriginals;
+  $("size-limit").checked = state.limitFileSize;
+  $("size-limit-hint").textContent = state.limitFileSize
+    ? "Preset: each file stays under 2 MB."
+    : "Original export, with no file-size cap.";
   layoutCrop();
 }
 function layoutCrop() {
@@ -853,6 +860,7 @@ async function runExport() {
       format: state.format,
       quality: state.quality,
       includeOriginals: state.includeOriginals,
+      maxBytes: state.limitFileSize ? MAX_EXPORT_BYTES : null,
     });
     state.lastRunDir = outputDir || "";
     renderResults(results);
@@ -1006,6 +1014,11 @@ $("quality-range").addEventListener("input", () => {
 });
 $("include-originals").addEventListener("change", () => {
   state.includeOriginals = $("include-originals").checked;
+  saveSettings();
+});
+$("size-limit").addEventListener("change", () => {
+  state.limitFileSize = $("size-limit").checked;
+  renderFormat();
   saveSettings();
 });
 $("retry-preview").addEventListener("click", refreshPreview);

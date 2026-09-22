@@ -129,7 +129,16 @@ test("export defaults remain backward compatible and unsupported options are rej
     format: "png",
     quality: 0.9,
     includeOriginals: true,
+    maxBytes: helpers.MAX_EXPORT_BYTES,
   });
+  assert.equal(
+    helpers.normalizeExportOptions({ maxBytes: null }).maxBytes,
+    null,
+  );
+  assert.equal(
+    helpers.normalizeExportOptions({ maxBytes: false }).maxBytes,
+    null,
+  );
   for (const quality of [0, 0.5, 1])
     assert.equal(helpers.normalizeExportOptions({ quality }).quality, quality);
   for (const options of [
@@ -139,6 +148,8 @@ test("export defaults remain backward compatible and unsupported options are rej
     { quality: NaN },
     { quality: "0.9" },
     { includeOriginals: "false" },
+    { maxBytes: 1000 },
+    { maxBytes: "2mb" },
   ]) {
     assert.throws(() => helpers.normalizeExportOptions(options));
   }
@@ -163,6 +174,87 @@ test("output validation enforces whole pixels, side and total-area limits", () =
   ]) {
     assert.throws(() => helpers.validateResolutions(sizes));
   }
+});
+
+test("export fitting keeps the highest setting that stays within 2 MB", async () => {
+  assert.equal(helpers.MAX_EXPORT_BYTES, 2 * 1024 * 1024);
+  const fitted = await helpers.largestWithinByteLimit(
+    async (quality) => ({ byteLength: quality * 1000, payload: quality }),
+    1,
+    10,
+    4500,
+  );
+  assert.equal(fitted.payload, 4);
+  assert.equal(
+    await helpers.largestWithinByteLimit(
+      async () => ({ byteLength: 20, payload: "over" }),
+      1,
+      5,
+      10,
+    ),
+    null,
+  );
+
+  const exact = await helpers.fitExport({
+    width: 80,
+    height: 40,
+    format: "jpeg",
+    quality: 0.9,
+    maxBytes: 5000,
+    encode: async (width, height, quality) => ({
+      byteLength: 100,
+      payload: { width, height, quality },
+    }),
+  });
+  assert.deepEqual(exact.payload, { width: 80, height: 40, quality: 90 });
+
+  const compressed = await helpers.fitExport({
+    width: 100,
+    height: 50,
+    format: "jpeg",
+    quality: 1,
+    maxBytes: 1000,
+    encode: async (width, height, quality) => ({
+      byteLength: quality * 40,
+      payload: { width, height, quality },
+    }),
+  });
+  assert.ok(compressed.byteLength <= 1000);
+  assert.deepEqual(
+    [compressed.width, compressed.height, compressed.payload.quality],
+    [100, 50, 25],
+  );
+
+  const shrunk = await helpers.fitExport({
+    width: 100,
+    height: 50,
+    format: "png",
+    quality: 0.9,
+    maxBytes: 800,
+    encode: async (width, height, quality) => ({
+      byteLength: quality == null ? width * height * 10 : width * height * 4,
+      payload: { width, height, quality },
+    }),
+  });
+  assert.ok(shrunk.byteLength <= 800);
+  assert.ok(shrunk.width * shrunk.height < 100 * 50);
+
+  const original = await helpers.fitExport({
+    width: 100,
+    height: 50,
+    format: "jpeg",
+    quality: 0.9,
+    maxBytes: null,
+    encode: async (width, height, quality) => ({
+      byteLength: 9_000_000,
+      payload: { width, height, quality },
+    }),
+  });
+  assert.equal(original.byteLength, 9_000_000);
+  assert.deepEqual(
+    [original.width, original.height, original.payload.quality],
+    [100, 50, 90],
+  );
 });
 
 test("center crop uses the target ratio and invalid crop values fall back safely", () => {
@@ -345,6 +437,59 @@ for (const format of ["png", "jpeg", "webp"]) {
     );
   });
 }
+
+test("desktop keeps each exported image at or under 2 MB", async () => {
+  const noisy = path.join(temp, "noisy.jpg");
+  await sharp({
+    create: {
+      width: 2400,
+      height: 1600,
+      channels: 3,
+      noise: { type: "gaussian", mean: 128, sigma: 60 },
+    },
+  })
+    .jpeg({ quality: 100 })
+    .toFile(noisy);
+  const uncapped = await sharp(noisy)
+    .resize(2400, 1600, { fit: "fill" })
+    .jpeg({ quality: 100, mozjpeg: true })
+    .toBuffer();
+  const output = path.join(temp, "capped-output");
+  await fs.mkdir(output, { recursive: true });
+  const result = await handlers.get("resize-images")(eventFor(), {
+    images: [{ path: noisy }],
+    resolutions: [{ width: 2400, height: 1600 }],
+    outputDir: output,
+    format: "jpeg",
+    quality: 1,
+    includeOriginals: false,
+  });
+  assert.equal(result.results[0].error, null);
+  assert.ok(result.results[0].size <= helpers.MAX_EXPORT_BYTES);
+  if (uncapped.length > helpers.MAX_EXPORT_BYTES) {
+    assert.ok(result.results[0].size < uncapped.length);
+  }
+  const exported = await sharp(result.results[0].outputPath).metadata();
+  assert.equal(exported.format, "jpeg");
+  assert.ok(exported.width <= 2400 && exported.height <= 1600);
+  const stat = await fs.stat(result.results[0].outputPath);
+  assert.equal(stat.size, result.results[0].size);
+  const uncappedOutput = path.join(temp, "original-size-output");
+  await fs.mkdir(uncappedOutput, { recursive: true });
+  const originalSize = await handlers.get("resize-images")(eventFor(), {
+    images: [{ path: noisy }],
+    resolutions: [{ width: 2400, height: 1600 }],
+    outputDir: uncappedOutput,
+    format: "jpeg",
+    quality: 1,
+    maxBytes: null,
+    includeOriginals: false,
+  });
+  assert.equal(originalSize.results[0].error, null);
+  if (uncapped.length > helpers.MAX_EXPORT_BYTES) {
+    assert.ok(originalSize.results[0].size > helpers.MAX_EXPORT_BYTES);
+  }
+});
 
 test("desktop retains originals by default and isolates corrupt-image failures", async () => {
   const output = await handlers.get("resize-images")(eventFor(), {
