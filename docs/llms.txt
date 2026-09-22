@@ -23,8 +23,11 @@ Do not describe it as an AI upscaler, background remover, or cloud editor. It do
 1. Add one image or a batch (JPG, PNG, WebP, PSD, AVIF, SVG, and other browser-decoded formats).
 2. Choose output sizes (presets or custom, up to 8,192 px per side and 32 MP).
 3. Compose a separate crop for each image × size, then export a ZIP.
+4. Optional 2 MB preset keeps each exported file under 2 MB. Turn it off to keep the original file size.
 
 PNG and WebP keep transparency. JPEG flattens onto white. Animated inputs export as a still frame.
+
+Desktop apps for macOS Apple Silicon and Windows are attached to GitHub releases: https://github.com/aneebji/img-rescaler/releases/latest
 
 ## Facts
 

@@ -1,7 +1,7 @@
 {
   "name": "image-rescaler",
   "productName": "Image Rescaler",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Image Rescaler — a free private image resizer and crop workspace for batch resizing, precise crops, Photoshop PSD imports, and PNG, JPEG, and WebP exports.",
   "keywords": [
     "image rescaler",
@@ -34,7 +34,8 @@
     "test:e2e": "playwright test",
     "build": "vite build",
     "build:pages": "vite build && node scripts/build-pages.mjs",
-    "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
+    "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64",
+    "package:win": "vite build && electron-builder --win --x64",
     "postinstall": "electron-builder install-app-deps",
     "format": "prettier --write src electron scripts tests *.mjs package.json .github *.md",
     "format:check": "prettier --check src electron scripts tests *.mjs package.json .github *.md"

@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 3.1.0 — 2026-09-22
+
+### Desktop downloads
+
+- Added unsigned macOS (Apple Silicon) and Windows packages, published on each GitHub release.
+- The live workspace stays at the same GitHub Pages URL and is rebuilt from `docs/` when `main` is updated.
+
+### Exports
+
+- Added a 2 MB export preset that keeps each output file under 2 MB, with a switch to keep the original file size instead.
+
+### Discovery
 
 - Clarified public search metadata, structured data, and crawler files so Image Rescaler is easier to find as a free image resizer.
 

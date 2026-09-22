@@ -19,6 +19,25 @@ mac:
   icon: build/icon.icns
   category: public.app-category.photography
   target:
-    - dmg
-    - zip
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
+  artifactName: Image-Rescaler-${version}-mac-${arch}.${ext}
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+  artifactName: Image-Rescaler-${version}-win-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Image Rescaler

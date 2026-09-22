@@ -10,9 +10,9 @@ Set your sizes, refine each crop, and batch-export PNG, JPEG, or WebP — in the
 [![Open workspace](https://img.shields.io/badge/Open_workspace-Live_app-3e583b?style=flat-square)](https://aneebji.github.io/img-rescaler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-222222?style=flat-square)](./LICENSE)
 [![Processing](https://img.shields.io/badge/Image_processing-On_your_device-167b52?style=flat-square)](#privacy)
-[![Version](https://img.shields.io/badge/Version-3.0.0-3e583b?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-3.1.0-3e583b?style=flat-square)](./CHANGELOG.md)
 
-[**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
+[**Launch the app →**](https://aneebji.github.io/img-rescaler/) · [macOS download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.0-mac-arm64.dmg) · [Windows download](https://github.com/aneebji/img-rescaler/releases/latest/download/Image-Rescaler-3.1.0-win-x64.exe) · [Report a bug](https://github.com/aneebji/img-rescaler/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/aneebji/img-rescaler/issues/new?template=feature_request.yml)
 
 </div>
 
@@ -39,6 +39,7 @@ Use the [browser app](https://aneebji.github.io/img-rescaler/) immediately, with
 | **Visual crop control**      | Frame each composition with drag, zoom, and a live output preview. Each image and size keeps its own crop during the session. |
 | **Useful size presets**      | Start with Social, Commerce, Web, or the original sizes, or enter custom pixel dimensions.                                    |
 | **PNG, JPEG, WebP, and PSD** | Import photos and Photoshop **PSD/PSB** files, then export PNG, JPEG, or WebP with adjustable quality.                        |
+| **2 MB export preset**       | Keep each exported file under 2 MB, or turn the preset off to keep the original file size.                                    |
 | **Organized delivery**       | Download a ZIP in the browser or save to a local run folder on desktop. Include source originals when needed.                 |
 | **A considered interface**   | Responsive layout, light and dark themes, and keyboard and touch crop controls.                                               |
 | **Try before importing**     | Explore the browser workspace with the built-in sample image.                                                                 |
@@ -91,13 +92,13 @@ Image files and crop edits are session data, not a saved project. Export your wo
 
 ## Browser and desktop
 
-|                    | Browser                                                                   | Desktop                                              |
-| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)              | Run locally from source                              |
-| **Processing**     | Browser image decoding and Canvas                                         | Sharp in Electron's main process                     |
-| **Delivery**       | ZIP download                                                              | Dated local output folder                            |
-| **Source formats** | Browser-decoded images plus Photoshop **PSD/PSB** (CMYK or RGB composite) | Sharp plus the same **PSD/PSB** composite decode     |
-| **Packaging**      | Static site hosted on GitHub Pages                                        | macOS `.dmg` and `.zip` build configuration included |
+|                    | Browser                                                                   | Desktop                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Run it**         | [Open the live app](https://aneebji.github.io/img-rescaler/)              | [macOS](https://github.com/aneebji/img-rescaler/releases/latest) or [Windows](https://github.com/aneebji/img-rescaler/releases/latest) download, or run from source |
+| **Processing**     | Browser image decoding and Canvas                                         | Sharp in Electron's main process                                                                                                                                    |
+| **Delivery**       | ZIP download                                                              | Dated local output folder                                                                                                                                           |
+| **Source formats** | Browser-decoded images plus Photoshop **PSD/PSB** (CMYK or RGB composite) | Sharp plus the same **PSD/PSB** composite decode                                                                                                                    |
+| **Packaging**      | Static site hosted on GitHub Pages                                        | macOS Apple Silicon `.dmg` / `.zip` and Windows `.exe` / `.zip` on each GitHub release                                                                              |
 
 ### Current limits
 
@@ -107,7 +108,7 @@ Image files and crop edits are session data, not a saved project. Export your wo
 - HEIC, HEIF, TIFF, and other specialist source formats depend on decoder support. A file extension alone does not guarantee compatibility.
 - Browser and desktop encoders can produce different file sizes and pixel results. This is not a color-managed print production workflow.
 - The project does not provide cloud storage, project sync, background uploads, or AI upscaling.
-- macOS packaging is configured for local builds. Locally generated packages are unsigned unless you supply your own signing configuration; Windows and Linux installers are not configured.
+- Published desktop packages are unsigned. On macOS, open the app from the Finder context menu the first time. On Windows, SmartScreen may warn that the publisher is unknown. Linux installers are not published. Intel Macs are not included in the Apple Silicon package.
 
 ## Develop locally
 
@@ -126,17 +127,18 @@ Open the local URL printed by Vite. To launch the desktop app instead:
 npm run dev
 ```
 
-| Command               | Purpose                                                       |
-| --------------------- | ------------------------------------------------------------- |
-| `npm run dev:web`     | Start the Vite browser development server.                    |
-| `npm run dev`         | Start Vite and launch Electron.                               |
-| `npm run check`       | Run source checks.                                            |
-| `npm test`            | Run automated tests.                                          |
-| `npm run test:e2e`    | Run Chromium workflow and image export tests with Playwright. |
-| `npm run build`       | Build the production renderer into `dist-renderer/`.          |
-| `npm run preview:web` | Preview the production renderer after building.               |
-| `npm run build:pages` | Generate the static GitHub Pages site in `docs/`.             |
-| `npm run package:mac` | Build local macOS `.dmg` and `.zip` artifacts in `release/`.  |
+| Command               | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `npm run dev:web`     | Start the Vite browser development server.                         |
+| `npm run dev`         | Start Vite and launch Electron.                                    |
+| `npm run check`       | Run source checks.                                                 |
+| `npm test`            | Run automated tests.                                               |
+| `npm run test:e2e`    | Run Chromium workflow and image export tests with Playwright.      |
+| `npm run build`       | Build the production renderer into `dist-renderer/`.               |
+| `npm run preview:web` | Preview the production renderer after building.                    |
+| `npm run build:pages` | Generate the static GitHub Pages site in `docs/`.                  |
+| `npm run package:mac` | Build a local macOS Apple Silicon `.dmg` and `.zip` in `release/`. |
+| `npm run package:win` | Build a local Windows `.exe` installer and `.zip` in `release/`.   |
 
 ### Architecture
 
@@ -146,7 +148,7 @@ The browser and desktop applications share the same renderer. A small API bounda
 src/                    Shared interface and browser adapter
 electron/               Desktop main process and preload bridge
 tests/                  Automated regression tests
-.github/                Contribution and issue templates
+.github/                Issue templates and the desktop release workflow
 contrib/                Optional GitHub Actions workflow
 docs/                   Generated GitHub Pages site
 media/                  Repository screenshots and presentation assets
@@ -174,7 +176,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-### Publish to the existing live URL
+### Publish the live site and desktop builds
 
 GitHub Pages serves this repository's `main` branch from `/docs` at **[aneebji.github.io/img-rescaler](https://aneebji.github.io/img-rescaler/)**.
 
@@ -182,7 +184,16 @@ GitHub Pages serves this repository's `main` branch from `/docs` at **[aneebji.g
 npm run build:pages
 ```
 
-Commit the source changes and generated `docs/` output, then push to `main` through the normal review process. GitHub Pages deploys the updated site at the same URL. Relative asset paths are configured in `vite.config.mjs` for the repository subpath.
+Commit the source changes, README updates, and generated `docs/` output, then push to `main`. GitHub Pages deploys the updated site at the same URL. Relative asset paths are configured in `vite.config.mjs` for the repository subpath.
+
+Desktop installers are not stored in the repository. Tag a version (`v3.1.0`) and push the tag. The release workflow builds macOS and Windows packages and attaches them to that GitHub release. Download links in this README should match those asset names.
+
+| Platform                  | File                                                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS Apple Silicon       | [Image-Rescaler-3.1.0-mac-arm64.dmg](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-mac-arm64.dmg) |
+| macOS Apple Silicon (zip) | [Image-Rescaler-3.1.0-mac-arm64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-mac-arm64.zip) |
+| Windows 64-bit installer  | [Image-Rescaler-3.1.0-win-x64.exe](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-win-x64.exe)     |
+| Windows 64-bit (zip)      | [Image-Rescaler-3.1.0-win-x64.zip](https://github.com/aneebji/img-rescaler/releases/download/v3.1.0/Image-Rescaler-3.1.0-win-x64.zip)     |
 
 ## Contribute
 
