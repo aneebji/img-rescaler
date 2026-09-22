@@ -34,8 +34,8 @@
     "test:e2e": "playwright test",
     "build": "vite build",
     "build:pages": "vite build && node scripts/build-pages.mjs",
-    "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64",
-    "package:win": "vite build && electron-builder --win --x64",
+    "package:mac": "vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish never",
+    "package:win": "vite build && electron-builder --win --x64 --publish never",
     "postinstall": "electron-builder install-app-deps",
     "format": "prettier --write src electron scripts tests *.mjs package.json .github *.md",
     "format:check": "prettier --check src electron scripts tests *.mjs package.json .github *.md"
